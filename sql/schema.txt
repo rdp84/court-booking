@@ -1,0 +1,66 @@
+User/Members Service
+--------------------
+
+members
+- id (UUID, PK)
+- name (VARCHAR)
+- email (VARCHAR, unique)
+- password_hash (VARCHAR)
+- account_balance (DECIMAL 10,2)
+- membership_status (ENUM: ACTIVE, SUSPENDED)
+- created_at (TIMESTAMP)
+
+account_transactions
+- id (UUID, PK)
+- member_id (FK → members)
+- amount (DECIMAL 10,2)  -- positive = credit, negative = debit
+- transaction_type (ENUM: TOP_UP, BOOKING_PAYMENT, REFUND, OPPONENT_TRANSFER)
+- reference_id (UUID)  -- e.g. the booking_id this relates to
+- created_at (TIMESTAMP)
+
+Court Service
+-------------
+
+courts
+- id (UUID, PK)
+- name (VARCHAR)  -- e.g. "Court 1"
+- slot_start_offset_minutes (INT)  -- 0 for the 06:45 courts, 30 for the 07:15 courts
+- is_active (BOOLEAN)
+
+time_slots
+- id (UUID, PK)
+- court_id (FK → courts)
+- slot_start (TIME)  -- e.g. 06:45, 07:30
+- slot_end (TIME)    -- slot_start + 45 mins
+
+court_pricing
+- id (UUID, PK)
+- day_type (ENUM: WEEKDAY, WEEKEND)
+- period_start (TIME)  -- e.g. 06:45
+- period_end (TIME)    -- e.g. 17:00
+- fee (DECIMAL 10,2)
+- valid_from (DATE)    -- in case you want to change prices in future
+
+Booking Service
+---------------
+
+bookings
+- id (UUID, PK)
+- court_id (UUID)  -- reference only, no FK across services
+- time_slot_id (UUID)  -- reference only
+- booking_date (DATE)  -- which day the slot is on
+- booker_member_id (UUID)
+- opponent_name (VARCHAR)
+- opponent_member_id (UUID, nullable)  -- if opponent is also a member
+- status (ENUM: CONFIRMED, CANCELLED_FULL_REFUND, CANCELLED_NO_REFUND)
+- court_fee (DECIMAL 10,2)  -- snapshot of fee at time of booking
+- created_at (TIMESTAMP)
+- cancelled_at (TIMESTAMP, nullable)
+
+payment_obligations
+- id (UUID, PK)
+- booking_id (FK → bookings)
+- member_id (UUID)  -- the opponent who owes their share
+- amount (DECIMAL 10,2)
+- status (ENUM: PENDING, PAID, WAIVED)
+- created_at (TIMESTAMP)
