@@ -1,3 +1,4 @@
+TRUNCATE TABLE time_slots, court_pricing, courts;
 
 -- This populates the courts table and then returns us the id and name that were inserted
 WITH inserted_courts AS (
