@@ -1,2 +1,18 @@
+# Maven
+target/
+
+# Eclipse (auto-generated, not needed)
+.classpath
+.project
+.settings/
+
+# Empty Maven config directory (no wrapper present)
+.mvn/
+
 # Emacs
-*#*
+*~
+\#*\#
+.#*
+
+# IDE general
+*.class
