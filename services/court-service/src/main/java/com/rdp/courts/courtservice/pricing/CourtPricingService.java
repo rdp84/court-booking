@@ -25,7 +25,7 @@ public class CourtPricingService {
     }
 
     private boolean isWeekend(DayOfWeek dayOfWeek) {
-        return dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY;
+        return dayOfWeek == DayOfWeek.SATURDAY;
     }
 
     private boolean isOffPeakHour(int hour) {
