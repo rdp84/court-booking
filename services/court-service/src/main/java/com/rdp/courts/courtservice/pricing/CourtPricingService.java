@@ -9,7 +9,7 @@ public class CourtPricingService {
     static final BigDecimal OFF_PEAK_FEE = new BigDecimal("3.00");
     static final BigDecimal PEAK_FEE = new BigDecimal("6.00");
 
-    public BigDecimal calculateFee(LocalDate day, LocalTime time) {
+    public BigDecimal calculateFee(LocaDate day, LocalTime time) {
         if (day == null)
             throw new IllegalArgumentException("day must not be null");
         if (time == null)
