@@ -1,4 +1,8 @@
 spring:
     jpa:
         hibernate:
-            ddl-auto: create-drop
+            ddl-auto: validate
+    flyway:
+        enabled: true
+        validate-migration-naming: true
+
