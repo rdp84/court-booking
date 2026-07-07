@@ -13,7 +13,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "courts")
-class Court {
+public class Court {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -27,7 +27,7 @@ class Court {
     Court() {
     }
 
-    Court(final String name, final boolean isActive) {
+    public Court(final String name, final boolean isActive) {
         this.name = name;
         this.isActive = isActive;
     }
