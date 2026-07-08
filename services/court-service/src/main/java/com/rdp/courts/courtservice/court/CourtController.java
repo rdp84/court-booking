@@ -1,0 +1,22 @@
+package com.rdp.courts.courtservice.court;
+
+import java.util.List;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/courts")
+class CourtController {
+    private final CourtService courtService;
+
+    CourtController(CourtService courtService) {
+        this.courtService = courtService;
+    }
+
+    @GetMapping
+    List<CourtResponse> getActiveCourts() {
+        return courtService.getActiveCourts();
+    }
+}
