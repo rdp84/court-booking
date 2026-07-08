@@ -5,4 +5,3 @@ CREATE TABLE courts (
        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
        CONSTRAINT pk_courts PRIMARY KEY (id)
 );
-
