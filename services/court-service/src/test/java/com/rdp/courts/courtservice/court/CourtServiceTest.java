@@ -30,7 +30,7 @@ class CourtServiceTest {
 
         final var result = courtService.getActiveCourts();
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).name()).isEqualTo("Court 1");
+        assertThat(result.get(0).getName()).isEqualTo("Court 1");
         assertThat(result.get(0).isActive()).isTrue();
     }
 
@@ -43,8 +43,8 @@ class CourtServiceTest {
 
         final var result = courtService.getCourtById(uuid);
         assertThat(result).isPresent();
-        assertThat(result.get().id()).isEqualTo(uuid);
-        assertThat(result.get().name()).isEqualTo("Court 2");
+        assertThat(result.get().getId()).isEqualTo(uuid);
+        assertThat(result.get().getName()).isEqualTo("Court 2");
         assertThat(result.get().isActive()).isTrue();
     }
 

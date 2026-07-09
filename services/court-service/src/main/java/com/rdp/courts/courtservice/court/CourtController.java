@@ -1,6 +1,7 @@
 package com.rdp.courts.courtservice.court;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -11,12 +12,16 @@ import org.springframework.web.bind.annotation.RestController;
 class CourtController {
     private final CourtService courtService;
 
+    private record CourtResponse(UUID id, String name, boolean isActive) {
+    }
+
     CourtController(CourtService courtService) {
         this.courtService = courtService;
     }
 
     @GetMapping
     List<CourtResponse> getActiveCourts() {
-        return courtService.getActiveCourts();
+        return courtService.getActiveCourts().stream()
+                .map(court -> new CourtResponse(court.getId(), court.getName(), court.isActive())).toList();
     }
 }

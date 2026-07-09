@@ -14,9 +14,7 @@ class TimeSlotService {
         this.timeSlotRepository = timeSlotRepository;
     }
 
-    List<TimeSlotResponse> getTimeSlotsForCourt(Court court) {
-        return timeSlotRepository.findByCourt(court).stream().map(
-                timeSlot -> new TimeSlotResponse(timeSlot.getId(), timeSlot.getSlotStart(), timeSlot.getSlotEnd()))
-                .toList();
+    List<TimeSlot> getTimeSlotsForCourt(Court court) {
+        return timeSlotRepository.findByCourt(court);
     }
 }
