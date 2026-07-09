@@ -23,11 +23,7 @@ public class Court {
     @CreationTimestamp
     private LocalDateTime createdAt;
 
-    // Required by JPA
-    Court() {
-    }
-
-    Court(final UUID id, final String name, final boolean isActive) {
+    public Court(final UUID id, final String name, final boolean isActive) {
         this.id = id;
         this.name = name;
         this.isActive = isActive;
@@ -36,6 +32,10 @@ public class Court {
     public Court(final String name, final boolean isActive) {
         this.name = name;
         this.isActive = isActive;
+    }
+
+    // Required by JPA
+    Court() {
     }
 
     public UUID getId() {

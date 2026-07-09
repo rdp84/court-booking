@@ -10,10 +10,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/courts")
 class CourtController {
-    private final CourtService courtService;
-
     private record CourtResponse(UUID id, String name, boolean isActive) {
     }
+
+    private final CourtService courtService;
 
     CourtController(CourtService courtService) {
         this.courtService = courtService;
