@@ -49,6 +49,12 @@ class TimeSlot {
         this.slotStart = slotStart;
     }
 
+    TimeSlot(Court court, LocalTime slotStart, LocalTime slotEnd) {
+        this.court = court;
+        this.slotStart = slotStart;
+        this.slotEnd = slotEnd;
+    }
+
     public UUID getId() {
         return id;
     }
