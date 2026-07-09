@@ -27,6 +27,12 @@ public class Court {
     Court() {
     }
 
+    Court(final UUID id, final String name, final boolean isActive) {
+        this.id = id;
+        this.name = name;
+        this.isActive = isActive;
+    }
+
     public Court(final String name, final boolean isActive) {
         this.name = name;
         this.isActive = isActive;
@@ -40,7 +46,7 @@ public class Court {
         return name;
     }
 
-    public boolean getIsActive() {
+    public boolean isActive() {
         return isActive;
     }
 

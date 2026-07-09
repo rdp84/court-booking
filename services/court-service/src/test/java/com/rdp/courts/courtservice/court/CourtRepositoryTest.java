@@ -45,7 +45,7 @@ class CourtRepositoryTest {
         assertThat(retrieved.get().getCreatedAt()).isNotNull();
         assertThat(retrieved.get().getCreatedAt()).isBeforeOrEqualTo(LocalDateTime.now());
         assertThat(retrieved.get().getName()).isEqualTo("Court 1");
-        assertThat(retrieved.get().getIsActive()).isTrue();
+        assertThat(retrieved.get().isActive()).isTrue();
     }
 
     @Test
@@ -58,7 +58,7 @@ class CourtRepositoryTest {
 
         final var retrieved = courtRepository.findById(saved.getId());
         assertThat(retrieved).isPresent();
-        assertThat(retrieved.get().getIsActive()).isFalse();
+        assertThat(retrieved.get().isActive()).isFalse();
     }
 
     @Test
@@ -95,7 +95,7 @@ class CourtRepositoryTest {
 
         final var retrieved = courtRepository.findById(saved.getId());
         assertThat(retrieved).isPresent();
-        assertThat(retrieved.get().getIsActive()).isFalse();
+        assertThat(retrieved.get().isActive()).isFalse();
     }
 
     @Test
