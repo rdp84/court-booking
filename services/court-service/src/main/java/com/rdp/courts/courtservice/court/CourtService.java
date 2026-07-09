@@ -14,13 +14,11 @@ class CourtService {
         this.courtRepository = courtRepository;
     }
 
-    List<CourtResponse> getActiveCourts() {
-        return courtRepository.findByIsActiveTrue().stream()
-                .map(court -> new CourtResponse(court.getId(), court.getName(), court.isActive())).toList();
+    List<Court> getActiveCourts() {
+        return courtRepository.findByIsActiveTrue();
     }
 
-    Optional<CourtResponse> getCourtById(UUID id) {
-        return courtRepository.findById(id)
-                .map(court -> new CourtResponse(court.getId(), court.getName(), court.isActive()));
+    Optional<Court> getCourtById(UUID id) {
+        return courtRepository.findById(id);
     }
 }

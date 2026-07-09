@@ -24,7 +24,7 @@ class CourtControllerTest {
     @Test
     void shouldReturnActiveCourts() throws Exception {
         final var id = UUID.randomUUID();
-        given(courtService.getActiveCourts()).willReturn(List.of(new CourtResponse(id, "Court 1", true)));
+        given(courtService.getActiveCourts()).willReturn(List.of(new Court(id, "Court 1", true)));
 
         final var body = assertThat(mockMvc.get().uri("/courts")).hasStatusOk().bodyJson();
         body.extractingPath("$[0].name").isEqualTo("Court 1");
