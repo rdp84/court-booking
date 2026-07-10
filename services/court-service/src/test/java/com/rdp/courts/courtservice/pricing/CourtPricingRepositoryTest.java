@@ -130,6 +130,13 @@ class CourtPricingRepositoryTest {
     }
 
     @Test
+    void shouldReturnEmptyWhenNoCourtPricingFound() {
+        final var retrieved = courtPricingRepository.findApplicablePricing(DayType.WEEKDAY, LocalTime.of(3, 30),
+                LocalDate.of(2000, 1, 3));
+        assertThat(retrieved).isNotPresent();
+    }
+
+    @Test
     void shouldThrowConstraintViolationWhenDuplicateDayStartValidFrom() {
         courtPricingRepository.save(new CourtPricing(DayType.WEEKEND, LocalTime.of(0, 0), LocalTime.of(1, 30),
                 new BigDecimal("3.00"), LocalDate.of(2000, 1, 1)));

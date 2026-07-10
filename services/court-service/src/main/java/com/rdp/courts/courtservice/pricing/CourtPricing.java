@@ -47,6 +47,16 @@ class CourtPricing {
         this.validFrom = validFrom;
     }
 
+    CourtPricing(UUID id, DayType dayType, LocalTime periodStart, LocalTime periodEnd, BigDecimal fee,
+            LocalDate validFrom) {
+        this.id = id;
+        this.dayType = dayType;
+        this.periodStart = periodStart;
+        this.periodEnd = periodEnd;
+        this.fee = fee;
+        this.validFrom = validFrom;
+    }
+
     public UUID getId() {
         return id;
     }

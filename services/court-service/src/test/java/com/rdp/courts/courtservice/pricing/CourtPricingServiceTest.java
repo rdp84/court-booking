@@ -1,110 +1,77 @@
 package com.rdp.courts.courtservice.pricing;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.BDDMockito.given;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.stream.Stream;
+import java.util.Optional;
+import java.util.UUID;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class CourtPricingServiceTest {
-    @Nested
-    @DisplayName("Weekday pricing")
-    class WeekdayPricing {
 
-        private static Stream<LocalTime> offPeakSlots() {
-            return Stream.of(
-                    LocalTime.of(6, 45),
-                    LocalTime.of(16, 30),
-                    LocalTime.of(21, 0),
-                    LocalTime.of(22, 15));
-        }
+    @Mock
+    CourtPricingRepository courtPricingRepository;
 
-        private static Stream<LocalTime> peakSlots() {
-            return Stream.of(
-                    LocalTime.of(17, 0),
-                    LocalTime.of(17, 15),
-                    LocalTime.of(20, 15),
-                    LocalTime.of(20, 45));
-        }
+    @InjectMocks
+    CourtPricingService courtPricingService;
 
-        @ParameterizedTest
-        @DisplayName("Off-peak slots should return £3.00")
-        @MethodSource("offPeakSlots")
-        void shouldReturnOffPeakFee(final LocalTime slot) {
-            final var fee = pricingService.calculateFee(WEEKDAY, slot);
-            assertThat(fee).isEqualByComparingTo(CourtPricingService.OFF_PEAK_FEE);
-        }
+    @Test
+    void shouldReturnFeeForWeekdayOffPeak() {
+        final var id = UUID.randomUUID();
+        final var courtPricing = new CourtPricing(id, DayType.WEEKDAY, LocalTime.of(6, 45), LocalTime.of(17, 0),
+                new BigDecimal("3.00"), LocalDate.of(2000, 1, 1));
 
-        @ParameterizedTest
-        @DisplayName("Peak slots should return £6.00")
-        @MethodSource("peakSlots")
-        void shouldReturnPeakFee(final LocalTime slot) {
-            final var fee = pricingService.calculateFee(WEEKDAY, slot);
-            assertThat(fee).isEqualByComparingTo(CourtPricingService.PEAK_FEE);
-        }
+        given(courtPricingRepository.findApplicablePricing(DayType.WEEKDAY, LocalTime.of(12, 0),
+                LocalDate.of(2000, 1, 3))).willReturn(Optional.of(courtPricing));
+
+        final var result = courtPricingService.calculateFee(LocalDate.of(2000, 1, 3), LocalTime.of(12, 0));
+        assertThat(result).isPresent();
+        assertThat(result.get()).isEqualByComparingTo(new BigDecimal("3.00"));
     }
 
-    @Nested
-    @DisplayName("Weekend pricing")
-    class WeekendPricing {
+    @Test
+    void shouldReturnFeeForWeekdayPeak() {
+        final var id = UUID.randomUUID();
+        final var courtPricing = new CourtPricing(id, DayType.WEEKDAY, LocalTime.of(17, 0), LocalTime.of(21, 0),
+                new BigDecimal("6.00"), LocalDate.of(2000, 1, 1));
 
-        private static Stream<LocalTime> weekendSlots() {
-            return Stream.of(
-                    LocalTime.of(7, 15),
-                    LocalTime.of(12, 0),
-                    LocalTime.of(16, 30),
-                    LocalTime.of(17, 0),
-                    LocalTime.of(17, 15),
-                    LocalTime.of(20, 15),
-                    LocalTime.of(20, 45),
-                    LocalTime.of(21, 0),
-                    LocalTime.of(22, 15));
-        }
+        given(courtPricingRepository.findApplicablePricing(DayType.WEEKDAY, LocalTime.of(17, 15),
+                LocalDate.of(2000, 1, 4))).willReturn(Optional.of(courtPricing));
 
-        @ParameterizedTest
-        @DisplayName("All Saturday slots should return £3.00")
-        @MethodSource("weekendSlots")
-        void shouldReturnOffPeakFeeForSaturday(final LocalTime slot) {
-            final var saturday = LocalDate.of(2000, 1, 8);
-            final var fee = pricingService.calculateFee(saturday, slot);
-            assertThat(fee).isEqualByComparingTo(CourtPricingService.OFF_PEAK_FEE);
-        }
-
-        @ParameterizedTest
-        @DisplayName("All Sunday slots should return £3.00")
-        @MethodSource("weekendSlots")
-        void shouldReturnOffPeakFeeForSunday(final LocalTime slot) {
-            final var sunday = LocalDate.of(2000, 1, 9);
-            final var fee = pricingService.calculateFee(sunday, slot);
-            assertThat(fee).isEqualByComparingTo(CourtPricingService.OFF_PEAK_FEE);
-        }
+        final var result = courtPricingService.calculateFee(LocalDate.of(2000, 1, 4), LocalTime.of(17, 15));
+        assertThat(result).isPresent();
+        assertThat(result.get()).isEqualByComparingTo(new BigDecimal("6.00"));
     }
 
-    @Nested
-    @DisplayName("Null input")
-    class NullInput {
+    @Test
+    void shouldReturnFeeForWeekend() {
+        final var id = UUID.randomUUID();
+        final var courtPricing = new CourtPricing(id, DayType.WEEKEND, LocalTime.of(6, 45), LocalTime.of(22, 45),
+                new BigDecimal("3.00"), LocalDate.of(2000, 1, 1));
 
-        @Test
-        void shouldThrowExceptionWhenDayIsNull() {
-            assertThatThrownBy(() -> pricingService.calculateFee(null, LocalTime.of(8, 15)))
-                    .isInstanceOf(IllegalArgumentException.class).hasMessage("day must not be null");
-        }
+        given(courtPricingRepository.findApplicablePricing(DayType.WEEKEND, LocalTime.of(7, 30),
+                LocalDate.of(2000, 1, 2))).willReturn(Optional.of(courtPricing));
 
-        @Test
-        void shouldThrowExceptionWhenTimeIsNull() {
-            assertThatThrownBy(() -> pricingService.calculateFee(LocalDate.of(2000, 1, 4), null))
-                    .isInstanceOf(IllegalArgumentException.class).hasMessage("time must not be null");
-        }
+        final var result = courtPricingService.calculateFee(LocalDate.of(2000, 1, 2), LocalTime.of(7, 30));
+        assertThat(result).isPresent();
+        assertThat(result.get()).isEqualByComparingTo(new BigDecimal("3.00"));
     }
 
-    private static final LocalDate WEEKDAY = LocalDate.of(2000, 1, 3); // Monday
+    @Test
+    void shouldReturnEmptyWhenNoCourtPricingFound() {
+        given(courtPricingRepository.findApplicablePricing(DayType.WEEKEND, LocalTime.of(3, 30),
+                LocalDate.of(2000, 1, 2))).willReturn(Optional.empty());
 
-    private final CourtPricingService pricingService = new CourtPricingService();
+        final var result = courtPricingService.calculateFee(LocalDate.of(2000, 1, 2), LocalTime.of(3, 30));
+        assertThat(result).isNotPresent();
+    }
 }
