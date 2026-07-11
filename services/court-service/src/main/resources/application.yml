@@ -8,6 +8,13 @@ spring:
     jpa:
         hibernate:
             ddl-auto: validate
-    server:
-        port: 8081
-
+        open-in-view: false
+    flyway:
+        enabled: true
+server:
+    port: 8081
+springdoc:
+    api-docs:
+        enabled: true
+    swagger-ui:
+        enabled: true
