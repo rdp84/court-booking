@@ -1,6 +1,5 @@
 package com.rdp.courts.courtservice.timeslot;
 
-import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 

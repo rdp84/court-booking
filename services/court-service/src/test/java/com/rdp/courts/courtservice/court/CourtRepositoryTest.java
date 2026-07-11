@@ -70,16 +70,17 @@ class CourtRepositoryTest {
 
     @Test
     void shouldRetrieveAllCourts() {
-        courtRepository.save(new Court("Court 1", true));
-        courtRepository.save(new Court("Court 2", true));
-        courtRepository.save(new Court("Court 3", true));
-        courtRepository.save(new Court("Court 4", true));
+        courtRepository.save(new Court("Test Court A", true));
+        courtRepository.save(new Court("Test Court B", true));
+        courtRepository.save(new Court("Test Court C", true));
+        courtRepository.save(new Court("Test Court D", true));
 
         entityManager.flush();
         entityManager.clear();
 
         final var courts = courtRepository.findAll();
-        assertThat(courts).hasSize(4);
+        assertThat(courts).extracting(Court::getName).contains("Test Court A", "Test Court B", "Test Court C",
+                "Test Court D");
     }
 
     @Test
