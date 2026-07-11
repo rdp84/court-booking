@@ -15,9 +15,6 @@ import com.rdp.courts.courtservice.court.CourtService;
 @RestController
 @RequestMapping("/courts")
 class TimeSlotController {
-    private record TimeSlotResponse(UUID id, LocalTime slotStart, LocalTime slotEnd) {
-    }
-
     private final TimeSlotService timeSlotService;
     private final CourtService courtService;
 
