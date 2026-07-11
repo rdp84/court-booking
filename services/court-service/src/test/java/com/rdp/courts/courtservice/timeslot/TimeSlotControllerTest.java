@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -44,9 +45,11 @@ class TimeSlotControllerTest {
         given(courtService.getCourtById(courtId)).willReturn(Optional.of(court));
         given(timeSlotService.getTimeSlotsForCourt(court)).willReturn(timeSlots);
 
-        final var body = assertThat(mockMvc.get().uri("/courts/" + courtId + "/slots")).hasStatusOk().bodyJson();
-        body.extractingPath("$[0].slotStart").isEqualTo("06:45:00");
-        body.extractingPath("$[0].slotEnd").isEqualTo("07:30:00");
+        assertThat(mockMvc.get().uri("/courts/" + courtId + "/slots")).hasStatusOk().bodyJson().extractingPath("$")
+                .convertTo(InstanceOfAssertFactories.list(TimeSlotResponse.class)).hasSize(4).satisfies(slots -> {
+                    assertThat(slots.get(0).slotStart()).isEqualTo(LocalTime.of(6, 45));
+                    assertThat(slots.get(0).slotEnd()).isEqualTo(LocalTime.of(7, 30));
+                });
     }
 
     @Test
