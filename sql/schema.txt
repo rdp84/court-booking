@@ -7,7 +7,8 @@ members
 - email (VARCHAR, unique)
 - password_hash (VARCHAR)
 - account_balance (DECIMAL 10,2)
-- membership_status (ENUM: ACTIVE, SUSPENDED)
+- membership_start_date (DATE)
+- membership_end_date (DATE)  -- member is active while CURRENT_DATE is between start and end
 - created_at (TIMESTAMP)
 
 account_transactions
