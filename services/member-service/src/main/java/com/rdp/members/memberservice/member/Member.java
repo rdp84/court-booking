@@ -46,35 +46,35 @@ public class Member {
     Member() {
     }
 
-    public UUID getId() {
+    UUID getId() {
         return id;
     }
 
-    public String getName() {
+    String getName() {
         return name;
     }
 
-    public String getEmail() {
+    String getEmail() {
         return email;
     }
 
-    public String getPasswordHash() {
+    String getPasswordHash() {
         return passwordHash;
     }
 
-    public BigDecimal getAccountBalance() {
+    BigDecimal getAccountBalance() {
         return accountBalance;
     }
 
-    public LocalDate getMembershipStartDate() {
+    LocalDate getMembershipStartDate() {
         return membershipStartDate;
     }
 
-    public LocalDate getMembershipEndDate() {
+    LocalDate getMembershipEndDate() {
         return membershipEndDate;
     }
 
-    public LocalDateTime getCreatedAt() {
+    LocalDateTime getCreatedAt() {
         return createdAt;
     }
 }
