@@ -20,7 +20,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "account_transactions")
-class AccountTransaction {
+public class AccountTransaction {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
