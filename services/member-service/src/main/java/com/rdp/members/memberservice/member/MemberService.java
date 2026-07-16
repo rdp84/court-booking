@@ -1,0 +1,31 @@
+package com.rdp.members.memberservice.member;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+class MemberService {
+    private final MemberRepository memberRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    MemberService(MemberRepository memberRepository, PasswordEncoder passwordEncoder) {
+        this.memberRepository = memberRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    @Transactional
+    Member registerMember(String name, String email, String rawPassword, MembershipTerm membershipTerm) {
+        if (memberRepository.existsByEmail(email)) {
+            throw new DuplicateEmailException(email);
+        }
+
+        final var startDate = LocalDate.now();
+        final var member = new Member(name, email, passwordEncoder.encode(rawPassword), BigDecimal.ZERO, startDate,
+                membershipTerm.calculateEndDate(startDate));
+        return memberRepository.save(member);
+    }
+}
