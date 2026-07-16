@@ -9,14 +9,14 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 @Service
-public class CourtPricingService {
+class CourtPricingService {
     private final CourtPricingRepository courtPricingRepository;
 
     CourtPricingService(CourtPricingRepository courtPricingRepository) {
         this.courtPricingRepository = courtPricingRepository;
     }
 
-    public Optional<BigDecimal> calculateFee(final LocalDate day, final LocalTime time) {
+    Optional<BigDecimal> calculateFee(final LocalDate day, final LocalTime time) {
         final var dayType = isWeekend(day.getDayOfWeek()) ? DayType.WEEKEND : DayType.WEEKDAY;
 
         return courtPricingRepository.findApplicablePricing(dayType, time, day)
