@@ -2,6 +2,8 @@ package com.rdp.members.memberservice.member;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -27,5 +29,9 @@ class MemberService {
         final var member = new Member(name, email, passwordEncoder.encode(rawPassword), BigDecimal.ZERO, startDate,
                 membershipTerm.calculateEndDate(startDate));
         return memberRepository.save(member);
+    }
+
+    Optional<Member> getMemberById(UUID id) {
+        return memberRepository.findById(id);
     }
 }
