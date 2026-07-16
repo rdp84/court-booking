@@ -89,4 +89,8 @@ public class Member {
     LocalDateTime getCreatedAt() {
         return createdAt;
     }
+
+    void creditBalance(BigDecimal amount) {
+        this.accountBalance = this.accountBalance.add(amount);
+    }
 }
