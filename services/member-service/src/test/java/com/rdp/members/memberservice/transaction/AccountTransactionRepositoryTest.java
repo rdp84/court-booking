@@ -78,8 +78,34 @@ class AccountTransactionRepositoryTest {
                 .isEqualTo("chk_amount_non_zero");
     }
 
+    @Test
+    void shouldFindOnlyTransactionsForSpecifiedMember() {
+        final var member1 = newMember("member1@example.com");
+        final var member2 = newMember("member2@example.com");
+        entityManager.persist(member1);
+        entityManager.persist(member2);
+        entityManager.flush();
+        entityManager.clear();
+
+        accountTransactionRepository.save(new AccountTransaction(member1, new BigDecimal("10.00"), TransactionType.TOP_UP));
+        accountTransactionRepository.save(new AccountTransaction(member1, new BigDecimal("15.00"), TransactionType.TOP_UP));
+        accountTransactionRepository.save(new AccountTransaction(member2, new BigDecimal("20.00"), TransactionType.TOP_UP));
+
+        entityManager.flush();
+        entityManager.clear();
+
+        final var transactions = accountTransactionRepository.findByMemberOrderByCreatedAtDesc(member1);
+
+        assertThat(transactions).extracting(AccountTransaction::getAmount)
+                .containsExactlyInAnyOrder(new BigDecimal("10.00"), new BigDecimal("15.00"));
+    }
+
     private Member newMember() {
-        return new Member("Jane Doe", "jane.doe@example.com", "hashed-password", BigDecimal.ZERO,
-                LocalDate.of(2000, 1, 1), LocalDate.of(2000, 6, 1));
+        return newMember("jane.doe@example.com");
+    }
+
+    private Member newMember(String email) {
+        return new Member("Jane Doe", email, "hashed-password", BigDecimal.ZERO, LocalDate.of(2000, 1, 1),
+                LocalDate.of(2000, 6, 1));
     }
 }

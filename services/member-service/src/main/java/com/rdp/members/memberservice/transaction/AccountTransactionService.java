@@ -1,6 +1,7 @@
 package com.rdp.members.memberservice.transaction;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import org.springframework.stereotype.Service;
 
@@ -16,5 +17,9 @@ public class AccountTransactionService {
 
     public void recordTopUp(Member member, BigDecimal amount) {
         accountTransactionRepository.save(new AccountTransaction(member, amount, TransactionType.TOP_UP));
+    }
+
+    public List<AccountTransaction> getTransactionHistory(Member member) {
+        return accountTransactionRepository.findByMemberOrderByCreatedAtDesc(member);
     }
 }
