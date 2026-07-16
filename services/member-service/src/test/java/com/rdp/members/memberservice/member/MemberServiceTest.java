@@ -16,10 +16,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
+import com.rdp.members.memberservice.transaction.AccountTransactionService;
 
 @ExtendWith(MockitoExtension.class)
 class MemberServiceTest {
@@ -29,6 +32,9 @@ class MemberServiceTest {
 
     @Mock
     PasswordEncoder passwordEncoder;
+
+    @Mock
+    AccountTransactionService accountTransactionService;
 
     @InjectMocks
     MemberService memberService;
@@ -84,5 +90,43 @@ class MemberServiceTest {
 
         final var result = memberService.getMemberById(uuid);
         assertThat(result).isNotPresent();
+    }
+
+    @Test
+    void shouldTopUpMemberBalance() {
+        final var uuid = UUID.randomUUID();
+        final var member = new Member(uuid, "Jane Doe", "jane.doe@example.com", "hashed-password",
+                new BigDecimal("10.00"), LocalDate.of(2000, 1, 1), LocalDate.of(2000, 6, 1));
+
+        given(memberRepository.findById(uuid)).willReturn(Optional.of(member));
+        given(memberRepository.save(any(Member.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+        final var result = memberService.topUp(uuid, new BigDecimal("25.00"));
+
+        assertThat(result.getAccountBalance()).isEqualByComparingTo(new BigDecimal("35.00"));
+        verify(accountTransactionService).recordTopUp(result, new BigDecimal("25.00"));
+    }
+
+    @Test
+    void shouldThrowMemberNotFoundExceptionWhenMemberDoesNotExist() {
+        final var uuid = UUID.randomUUID();
+        given(memberRepository.findById(uuid)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> memberService.topUp(uuid, new BigDecimal("25.00")))
+                .isInstanceOf(MemberNotFoundException.class).hasMessageContaining(uuid.toString());
+
+        verify(memberRepository, never()).save(any());
+        verify(accountTransactionService, never()).recordTopUp(any(), any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "0.00", "-5.00" })
+    void shouldThrowIllegalArgumentExceptionForNonPositiveAmount(String amount) {
+        final var uuid = UUID.randomUUID();
+
+        assertThatThrownBy(() -> memberService.topUp(uuid, new BigDecimal(amount)))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        verify(memberRepository, never()).findById(any());
     }
 }

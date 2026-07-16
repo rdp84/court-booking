@@ -9,14 +9,19 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.rdp.members.memberservice.transaction.AccountTransactionService;
+
 @Service
 class MemberService {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AccountTransactionService accountTransactionService;
 
-    MemberService(MemberRepository memberRepository, PasswordEncoder passwordEncoder) {
+    MemberService(MemberRepository memberRepository, PasswordEncoder passwordEncoder,
+            AccountTransactionService accountTransactionService) {
         this.memberRepository = memberRepository;
         this.passwordEncoder = passwordEncoder;
+        this.accountTransactionService = accountTransactionService;
     }
 
     @Transactional
@@ -33,5 +38,19 @@ class MemberService {
 
     Optional<Member> getMemberById(UUID id) {
         return memberRepository.findById(id);
+    }
+
+    @Transactional
+    Member topUp(UUID memberId, BigDecimal amount) {
+        if (amount.signum() <= 0) {
+            throw new IllegalArgumentException("Top-up amount must be positive: " + amount);
+        }
+
+        final var member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MemberNotFoundException(memberId));
+        member.creditBalance(amount);
+        final var saved = memberRepository.save(member);
+        accountTransactionService.recordTopUp(saved, amount);
+        return saved;
     }
 }
