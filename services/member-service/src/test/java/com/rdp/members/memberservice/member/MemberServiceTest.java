@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -22,6 +23,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import com.rdp.members.memberservice.transaction.AccountTransaction;
 import com.rdp.members.memberservice.transaction.AccountTransactionService;
 
 @ExtendWith(MockitoExtension.class)
@@ -128,5 +130,30 @@ class MemberServiceTest {
                 .isInstanceOf(IllegalArgumentException.class);
 
         verify(memberRepository, never()).findById(any());
+    }
+
+    @Test
+    void shouldReturnTransactionHistoryForMember() {
+        final var uuid = UUID.randomUUID();
+        final var member = new Member(uuid, "Jane Doe", "jane.doe@example.com", "hashed-password", BigDecimal.ZERO,
+                LocalDate.of(2000, 1, 1), LocalDate.of(2000, 6, 1));
+        final List<AccountTransaction> expected = List.of();
+
+        given(memberRepository.findById(uuid)).willReturn(Optional.of(member));
+        given(accountTransactionService.getTransactionHistory(member)).willReturn(expected);
+
+        final var result = memberService.getTransactionHistory(uuid);
+        assertThat(result).isSameAs(expected);
+    }
+
+    @Test
+    void shouldThrowMemberNotFoundExceptionWhenGettingTransactionHistoryForNonExistentMember() {
+        final var uuid = UUID.randomUUID();
+        given(memberRepository.findById(uuid)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> memberService.getTransactionHistory(uuid))
+                .isInstanceOf(MemberNotFoundException.class).hasMessageContaining(uuid.toString());
+
+        verify(accountTransactionService, never()).getTransactionHistory(any());
     }
 }

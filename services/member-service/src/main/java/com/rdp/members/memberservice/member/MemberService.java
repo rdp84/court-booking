@@ -2,6 +2,7 @@ package com.rdp.members.memberservice.member;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -9,6 +10,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.rdp.members.memberservice.transaction.AccountTransaction;
 import com.rdp.members.memberservice.transaction.AccountTransactionService;
 
 @Service
@@ -52,5 +54,11 @@ class MemberService {
         final var saved = memberRepository.save(member);
         accountTransactionService.recordTopUp(saved, amount);
         return saved;
+    }
+
+    List<AccountTransaction> getTransactionHistory(UUID memberId) {
+        final var member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new MemberNotFoundException(memberId));
+        return accountTransactionService.getTransactionHistory(member);
     }
 }
