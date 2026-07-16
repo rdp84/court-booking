@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -59,5 +61,28 @@ class MemberServiceTest {
                 .hasMessageContaining("jane.doe@example.com");
 
         verify(memberRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldReturnMemberWhenMemberExists() {
+        final var uuid = UUID.randomUUID();
+        final var member = new Member(uuid, "Jane Doe", "jane.doe@example.com", "hashed-password", BigDecimal.ZERO,
+                LocalDate.of(2000, 1, 1), LocalDate.of(2000, 6, 1));
+
+        given(memberRepository.findById(uuid)).willReturn(Optional.of(member));
+
+        final var result = memberService.getMemberById(uuid);
+        assertThat(result).isPresent();
+        assertThat(result.get().getId()).isEqualTo(uuid);
+        assertThat(result.get().getName()).isEqualTo("Jane Doe");
+    }
+
+    @Test
+    void shouldReturnEmptyOptionalWhenMemberNotFound() {
+        final var uuid = UUID.randomUUID();
+        given(memberRepository.findById(uuid)).willReturn(Optional.empty());
+
+        final var result = memberService.getMemberById(uuid);
+        assertThat(result).isNotPresent();
     }
 }

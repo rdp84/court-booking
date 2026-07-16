@@ -42,6 +42,18 @@ public class Member {
         this.membershipEndDate = membershipEndDate;
     }
 
+    Member(final UUID id, final String name, final String email, final String passwordHash,
+            final BigDecimal accountBalance, final LocalDate membershipStartDate,
+            final LocalDate membershipEndDate) {
+        this.id = id;
+        this.name = name;
+        this.email = email;
+        this.passwordHash = passwordHash;
+        this.accountBalance = accountBalance;
+        this.membershipStartDate = membershipStartDate;
+        this.membershipEndDate = membershipEndDate;
+    }
+
     // Required by JPA
     Member() {
     }
