@@ -23,6 +23,12 @@ class MemberController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/{id}/balance")
+    ResponseEntity<BalanceResponse> getBalance(@PathVariable UUID id) {
+        return memberService.getMemberById(id).map(member -> new BalanceResponse(member.getAccountBalance()))
+                .map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+    }
+
     private MemberResponse toMemberResponse(Member member) {
         return new MemberResponse(member.getId(), member.getName(), member.getEmail(), member.getAccountBalance(),
                 member.getMembershipStartDate(), member.getMembershipEndDate(), member.getCreatedAt());
