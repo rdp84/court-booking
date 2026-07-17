@@ -11,15 +11,15 @@ import com.rdp.members.memberservice.member.Member;
 public class AccountTransactionService {
     private final AccountTransactionRepository accountTransactionRepository;
 
-    AccountTransactionService(AccountTransactionRepository accountTransactionRepository) {
+    AccountTransactionService(final AccountTransactionRepository accountTransactionRepository) {
         this.accountTransactionRepository = accountTransactionRepository;
     }
 
-    public void recordTopUp(Member member, BigDecimal amount) {
+    public void recordTopUp(final Member member, final BigDecimal amount) {
         accountTransactionRepository.save(new AccountTransaction(member, amount, TransactionType.TOP_UP));
     }
 
-    public List<AccountTransaction> getTransactionHistory(Member member) {
+    public List<AccountTransaction> getTransactionHistory(final Member member) {
         return accountTransactionRepository.findByMemberOrderByCreatedAtDesc(member);
     }
 }

@@ -20,10 +20,14 @@ jobs:
             distribution: 'temurin'
             java-version: '25'
             cache: 'maven'
-        - name: Build
-          id: build
-          run: mvn -B compile
-          working-directory: ./services
+        - parallel:
+          - name: Checkstyle
+            run: mvn -B checkstyle:check
+            working-directory: ./services
+          - name: Build
+            id: build
+            run: mvn -B compile
+            working-directory: ./services
         - name: Unit Tests
           run: mvn -B -Dmaven.test.failure.ignore=true test
           working-directory: ./services

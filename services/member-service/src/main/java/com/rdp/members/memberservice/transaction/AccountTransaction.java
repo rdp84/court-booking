@@ -42,7 +42,7 @@ public class AccountTransaction {
     @CreationTimestamp
     private LocalDateTime createdAt;
 
-    public AccountTransaction(Member member, BigDecimal amount, TransactionType transactionType) {
+    public AccountTransaction(final Member member, final BigDecimal amount, final TransactionType transactionType) {
         this.member = member;
         this.amount = amount;
         this.transactionType = transactionType;

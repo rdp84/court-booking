@@ -18,38 +18,38 @@ import com.rdp.members.memberservice.transaction.AccountTransaction;
 class MemberController {
     private final MemberService memberService;
 
-    MemberController(MemberService memberService) {
+    MemberController(final MemberService memberService) {
         this.memberService = memberService;
     }
 
     @GetMapping("/{id}")
-    ResponseEntity<MemberResponse> getMember(@PathVariable UUID id) {
+    ResponseEntity<MemberResponse> getMember(@PathVariable final UUID id) {
         return memberService.getMemberById(id).map(this::toMemberResponse).map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/{id}/balance")
-    ResponseEntity<BalanceResponse> getBalance(@PathVariable UUID id) {
+    ResponseEntity<BalanceResponse> getBalance(@PathVariable final UUID id) {
         return memberService.getMemberById(id).map(member -> new BalanceResponse(member.getAccountBalance()))
                 .map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping("/{id}/topup")
-    MemberResponse topUp(@PathVariable UUID id, @RequestBody TopUpRequest request) {
+    MemberResponse topUp(@PathVariable final UUID id, @RequestBody final TopUpRequest request) {
         return toMemberResponse(memberService.topUp(id, request.amount()));
     }
 
     @GetMapping("/{id}/transactions")
-    List<TransactionResponse> getTransactions(@PathVariable UUID id) {
+    List<TransactionResponse> getTransactions(@PathVariable final UUID id) {
         return memberService.getTransactionHistory(id).stream().map(this::toTransactionResponse).toList();
     }
 
-    private MemberResponse toMemberResponse(Member member) {
+    private MemberResponse toMemberResponse(final Member member) {
         return new MemberResponse(member.getId(), member.getName(), member.getEmail(), member.getAccountBalance(),
                 member.getMembershipStartDate(), member.getMembershipEndDate(), member.getCreatedAt());
     }
 
-    private TransactionResponse toTransactionResponse(AccountTransaction transaction) {
+    private TransactionResponse toTransactionResponse(final AccountTransaction transaction) {
         return new TransactionResponse(transaction.getId(), transaction.getAmount(), transaction.getTransactionType(),
                 transaction.getReferenceId(), transaction.getCreatedAt());
     }

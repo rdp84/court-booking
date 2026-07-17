@@ -39,7 +39,8 @@ class CourtPricing {
     CourtPricing() {
     }
 
-    CourtPricing(DayType dayType, LocalTime periodStart, LocalTime periodEnd, BigDecimal fee, LocalDate validFrom) {
+    CourtPricing(final DayType dayType, final LocalTime periodStart, final LocalTime periodEnd, final BigDecimal fee,
+            final LocalDate validFrom) {
         this.dayType = dayType;
         this.periodStart = periodStart;
         this.periodEnd = periodEnd;
@@ -47,8 +48,8 @@ class CourtPricing {
         this.validFrom = validFrom;
     }
 
-    CourtPricing(UUID id, DayType dayType, LocalTime periodStart, LocalTime periodEnd, BigDecimal fee,
-            LocalDate validFrom) {
+    CourtPricing(final UUID id, final DayType dayType, final LocalTime periodStart, final LocalTime periodEnd,
+            final BigDecimal fee, final LocalDate validFrom) {
         this.id = id;
         this.dayType = dayType;
         this.periodStart = periodStart;

@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 class CourtPricingService {
     private final CourtPricingRepository courtPricingRepository;
 
-    CourtPricingService(CourtPricingRepository courtPricingRepository) {
+    CourtPricingService(final CourtPricingRepository courtPricingRepository) {
         this.courtPricingRepository = courtPricingRepository;
     }
 

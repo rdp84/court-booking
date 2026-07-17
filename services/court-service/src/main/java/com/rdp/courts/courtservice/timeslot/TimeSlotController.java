@@ -17,13 +17,13 @@ class TimeSlotController {
     private final TimeSlotService timeSlotService;
     private final CourtService courtService;
 
-    TimeSlotController(TimeSlotService timeSlotService, CourtService courtService) {
+    TimeSlotController(final TimeSlotService timeSlotService, final CourtService courtService) {
         this.timeSlotService = timeSlotService;
         this.courtService = courtService;
     }
 
     @GetMapping("/{id}/slots")
-    ResponseEntity<List<TimeSlotResponse>> getTimeSlotsForCourt(@PathVariable UUID id) {
+    ResponseEntity<List<TimeSlotResponse>> getTimeSlotsForCourt(@PathVariable final UUID id) {
         return courtService.getCourtById(id)
                 .map(court -> timeSlotService.getTimeSlotsForCourt(court))
                 .map(slots -> slots.stream()

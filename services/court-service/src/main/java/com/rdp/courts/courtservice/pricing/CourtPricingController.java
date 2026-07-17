@@ -14,12 +14,13 @@ import org.springframework.web.bind.annotation.RestController;
 class CourtPricingController {
     private final CourtPricingService courtPricingService;
 
-    CourtPricingController(CourtPricingService courtPricingService) {
+    CourtPricingController(final CourtPricingService courtPricingService) {
         this.courtPricingService = courtPricingService;
     }
 
     @GetMapping("/pricing")
-    ResponseEntity<CourtPricingResponse> getCourtPricing(@RequestParam LocalDate date, @RequestParam LocalTime time) {
+    ResponseEntity<CourtPricingResponse> getCourtPricing(@RequestParam final LocalDate date,
+            @RequestParam final LocalTime time) {
         return courtPricingService.calculateFee(date, time).map(fee -> new CourtPricingResponse(fee))
                 .map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }

@@ -44,12 +44,12 @@ class TimeSlot {
     TimeSlot() {
     }
 
-    TimeSlot(Court court, LocalTime slotStart) {
+    TimeSlot(final Court court, final LocalTime slotStart) {
         this.court = court;
         this.slotStart = slotStart;
     }
 
-    TimeSlot(Court court, LocalTime slotStart, LocalTime slotEnd) {
+    TimeSlot(final Court court, final LocalTime slotStart, final LocalTime slotEnd) {
         this.court = court;
         this.slotStart = slotStart;
         this.slotEnd = slotEnd;

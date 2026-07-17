@@ -44,7 +44,7 @@ class MemberServiceTest {
 
     @ParameterizedTest
     @EnumSource(MembershipTerm.class)
-    void shouldRegisterNewMember(MembershipTerm membershipTerm) {
+    void shouldRegisterNewMember(final MembershipTerm membershipTerm) {
         given(memberRepository.existsByEmail("jane.doe@example.com")).willReturn(false);
         given(passwordEncoder.encode("plaintext-password")).willReturn("hashed-password");
         given(memberRepository.save(any(Member.class))).willAnswer(invocation -> invocation.getArgument(0));
@@ -124,7 +124,7 @@ class MemberServiceTest {
 
     @ParameterizedTest
     @ValueSource(strings = { "0.00", "-5.00" })
-    void shouldThrowIllegalArgumentExceptionForNonPositiveAmount(String amount) {
+    void shouldThrowIllegalArgumentExceptionForNonPositiveAmount(final String amount) {
         final var uuid = UUID.randomUUID();
 
         assertThatThrownBy(() -> memberService.topUp(uuid, new BigDecimal(amount)))
