@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -110,7 +111,7 @@ class MemberServiceTest {
     }
 
     @Test
-    void shouldThrowMemberNotFoundExceptionWhenMemberDoesNotExist() {
+    void shouldThrowMemberNotFoundExceptionWhenTopUpForNonExistentMember() {
         final var uuid = UUID.randomUUID();
         given(memberRepository.findById(uuid)).willReturn(Optional.empty());
 
@@ -133,7 +134,21 @@ class MemberServiceTest {
     }
 
     @Test
-    void shouldReturnTransactionHistoryForMember() {
+    void shouldReturnTransactionHistoryForMemberWithTransactions() {
+        final var uuid = UUID.randomUUID();
+        final var member = new Member(uuid, "Jane Doe", "jane.doe@example.com", "hashed-password", BigDecimal.ZERO,
+                LocalDate.of(2000, 1, 1), LocalDate.of(2000, 6, 1));
+        final List<AccountTransaction> expected = List.of(mock(AccountTransaction.class));
+
+        given(memberRepository.findById(uuid)).willReturn(Optional.of(member));
+        given(accountTransactionService.getTransactionHistory(member)).willReturn(expected);
+
+        final var result = memberService.getTransactionHistory(uuid);
+        assertThat(result).isSameAs(expected);
+    }
+
+    @Test
+    void shouldReturnEmptyTransactionHistoryForMemberWithNoTransactions() {
         final var uuid = UUID.randomUUID();
         final var member = new Member(uuid, "Jane Doe", "jane.doe@example.com", "hashed-password", BigDecimal.ZERO,
                 LocalDate.of(2000, 1, 1), LocalDate.of(2000, 6, 1));
