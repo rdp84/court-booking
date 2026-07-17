@@ -35,7 +35,8 @@ public class AccountTransaction {
     @Enumerated(EnumType.STRING)
     private TransactionType transactionType;
 
-    // Only set once a transaction is linked to a booking (BOOKING_PAYMENT/REFUND/OPPONENT_TRANSFER)
+    // Only set once a transaction is linked to a booking
+    // (BOOKING_PAYMENT/REFUND/OPPONENT_TRANSFER)
     private UUID referenceId;
 
     @CreationTimestamp
