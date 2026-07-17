@@ -34,11 +34,14 @@ mvn -B test -pl court-service -Dtest=CourtPricingRepositoryTest#shouldReturnEmpt
 
 # Run a service locally (requires Postgres reachable at DB_URL/DB_USERNAME/DB_PASSWORD, see application.yml)
 mvn -pl court-service spring-boot:run
+
+# Run Checkstyle only (also runs automatically at the validate phase, so mvn compile/test already enforce it)
+mvn -B checkstyle:check
 ```
 
 Repository tests (`*RepositoryTest`) use Testcontainers to spin up a real Postgres instance — Docker must be available to run them.
 
-CI (`.github/workflows/ci.yml`) runs `mvn -B compile` then `mvn -B test` against Java 25 with the same working directory (`./services`).
+CI (`.github/workflows/ci.yml`) runs a `Checkstyle` step and `Build` (`mvn -B compile`) in parallel, then `mvn -B test`, against Java 25 with the same working directory (`./services`).
 
 ## Architecture
 
@@ -55,7 +58,7 @@ com.rdp.courts.courtservice/
   timeslot/    TimeSlot entity, TimeSlotRepository, TimeSlotService, TimeSlotController
 ```
 
-Classes and constructors are package-private by default (only `@SpringBootApplication` and JPA-required members are `public`) — each domain package is a self-contained vertical slice, not meant to expose internals to other packages.
+Classes and constructors are package-private by default (only `@SpringBootApplication` and JPA-required members are `public`) — each domain package is a self-contained vertical slice, not meant to expose internals to other packages. Prefer package-private for entities, repositories, and services. Use `mock(ClassName.class)` in cross-package tests rather than widening visibility just for testing purposes. Only widen to `public` when genuinely needed for cross-package production code.
 
 ### Database migrations
 
@@ -70,6 +73,14 @@ Each service manages its own schema via Flyway migrations in `src/main/resources
 ### API docs
 
 springdoc-openapi is wired in for court-service; Swagger UI and `/v3/api-docs` are enabled via `application.yml`.
+
+### Code style
+
+`final` is used everywhere it can be: fields, every constructor/method parameter, and every local variable (`final var x = ...`). Two exceptions, both structural rather than stylistic:
+- Lambda parameters are left unannotated — Java requires explicit types on *all* of a lambda's parameters if any one of them has a modifier, so adding `final` would force `(final Court court) -> ...` over the idiomatic `court -> ...`.
+- Repository interface methods (e.g. `CourtRepository.findByIsActiveTrue`) don't need it — Checkstyle's `FinalParameters` check (see below) skips abstract/interface method parameters automatically, since there's no method body for `final` to protect.
+
+Enforced by Checkstyle (`services/checkstyle.xml`: `FinalParameters`, `FinalLocalVariable`), wired into `services/pom.xml` at the Maven `validate` phase so `mvn compile`/`mvn test` catch violations locally regardless of editor tooling, and run as a dedicated step in CI.
 
 ### Git workflow
 
