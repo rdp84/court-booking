@@ -5,6 +5,7 @@ import static org.mockito.BDDMockito.given;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -14,6 +15,9 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
+
+import com.rdp.members.memberservice.transaction.AccountTransaction;
+import com.rdp.members.memberservice.transaction.TransactionType;
 
 @WebMvcTest(MemberController.class)
 class MemberControllerTest {
@@ -120,5 +124,32 @@ class MemberControllerTest {
                             "amount": 10.00
                         }
                         """)).hasStatus4xxClientError().hasStatus(404);
+    }
+
+    @Test
+    void shouldReturnTransactionHistoryWhenMemberFound() {
+        final var id = UUID.randomUUID();
+        final var member = new Member(id, "Ada Lovelace", "ada@example.com", "hashed-password",
+                new BigDecimal("35.00"), LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31));
+        final var transaction = new AccountTransaction(member, new BigDecimal("10.00"), TransactionType.TOP_UP);
+        given(memberService.getTransactionHistory(id)).willReturn(List.of(transaction));
+
+        assertThat(mockMvc.get().uri("/members/{id}/transactions", id)).hasStatusOk().bodyJson()
+                .isLenientlyEqualTo("""
+                        [
+                            {
+                                "amount": 10.00,
+                                "transactionType": "TOP_UP"
+                            }
+                        ]
+                        """);
+    }
+
+    @Test
+    void shouldReturnNotFoundForTransactionsWhenMemberDoesNotExist() {
+        final var id = UUID.randomUUID();
+        given(memberService.getTransactionHistory(id)).willThrow(new MemberNotFoundException(id));
+
+        assertThat(mockMvc.get().uri("/members/{id}/transactions", id)).hasStatus4xxClientError().hasStatus(404);
     }
 }
