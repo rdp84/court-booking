@@ -10,11 +10,11 @@ enum MembershipTerm {
 
     private final Period duration;
 
-    MembershipTerm(Period duration) {
+    MembershipTerm(final Period duration) {
         this.duration = duration;
     }
 
-    LocalDate calculateEndDate(LocalDate startDate) {
+    LocalDate calculateEndDate(final LocalDate startDate) {
         return startDate.plus(duration);
     }
 }

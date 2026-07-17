@@ -58,16 +58,16 @@ class CourtPricingRepositoryTest {
         @ParameterizedTest
         @DisplayName("applicable pricing for off-peak slots should be found")
         @MethodSource("offPeakCourtPricing")
-        void shouldFindApplicablePricingForWeekdayOffPeak(DayType dayType, LocalTime time, LocalDate date,
-                BigDecimal expectedFee) {
+        void shouldFindApplicablePricingForWeekdayOffPeak(final DayType dayType, final LocalTime time,
+                final LocalDate date, final BigDecimal expectedFee) {
             shouldFindApplicablePricing(dayType, time, date, expectedFee);
         }
 
         @ParameterizedTest
         @DisplayName("applicable pricing peak slots should be found")
         @MethodSource("peakCourtPricing")
-        void shouldFindApplicablePricingForWeekdayPeak(DayType dayType, LocalTime time, LocalDate date,
-                BigDecimal expectedFee) {
+        void shouldFindApplicablePricingForWeekdayPeak(final DayType dayType, final LocalTime time,
+                final LocalDate date, final BigDecimal expectedFee) {
             shouldFindApplicablePricing(dayType, time, date, expectedFee);
         }
     }
@@ -94,8 +94,8 @@ class CourtPricingRepositoryTest {
         @ParameterizedTest
         @DisplayName("applicable pricing for weekend slots should be found")
         @MethodSource("weekendCourtPricing")
-        void shouldFindApplicablePricingForWeekend(DayType dayType, LocalTime time, LocalDate date,
-                BigDecimal expectedFee) {
+        void shouldFindApplicablePricingForWeekend(final DayType dayType, final LocalTime time,
+                final LocalDate date, final BigDecimal expectedFee) {
             shouldFindApplicablePricing(dayType, time, date, expectedFee);
         }
     }
@@ -165,8 +165,8 @@ class CourtPricingRepositoryTest {
                 .extracting(e -> ((ConstraintViolationException) e).getConstraintName()).isEqualTo("chk_fee");
     }
 
-    private void shouldFindApplicablePricing(DayType dayType, LocalTime time, LocalDate date,
-            BigDecimal expectedFee) {
+    private void shouldFindApplicablePricing(final DayType dayType, final LocalTime time, final LocalDate date,
+            final BigDecimal expectedFee) {
         final var retrieved = courtPricingRepository.findApplicablePricing(dayType, time, date);
         assertThat(retrieved).isPresent();
         assertThat(retrieved.get().getDayType()).isEqualTo(dayType);

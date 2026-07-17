@@ -90,7 +90,7 @@ public class Member {
         return createdAt;
     }
 
-    void creditBalance(BigDecimal amount) {
+    void creditBalance(final BigDecimal amount) {
         this.accountBalance = this.accountBalance.add(amount);
     }
 }

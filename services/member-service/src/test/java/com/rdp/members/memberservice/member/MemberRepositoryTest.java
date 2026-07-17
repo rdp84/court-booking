@@ -105,11 +105,11 @@ class MemberRepositoryTest {
                 .isEqualTo("chk_balance_non_negative");
     }
 
-    private Member newMember(String email) {
+    private Member newMember(final String email) {
         return newMember(email, new BigDecimal("0.00"));
     }
 
-    private Member newMember(String email, BigDecimal accountBalance) {
+    private Member newMember(final String email, final BigDecimal accountBalance) {
         return new Member("Jane Doe", email, "hashed-password", accountBalance, LocalDate.of(2000, 1, 1),
                 LocalDate.of(2000, 6, 1));
     }

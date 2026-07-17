@@ -10,11 +10,11 @@ import org.springframework.stereotype.Service;
 public class CourtService {
     private final CourtRepository courtRepository;
 
-    CourtService(CourtRepository courtRepository) {
+    CourtService(final CourtRepository courtRepository) {
         this.courtRepository = courtRepository;
     }
 
-    public Optional<Court> getCourtById(UUID id) {
+    public Optional<Court> getCourtById(final UUID id) {
         return courtRepository.findById(id);
     }
 

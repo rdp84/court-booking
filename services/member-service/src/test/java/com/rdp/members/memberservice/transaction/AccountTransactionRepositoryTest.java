@@ -104,7 +104,7 @@ class AccountTransactionRepositoryTest {
         return newMember("jane.doe@example.com");
     }
 
-    private Member newMember(String email) {
+    private Member newMember(final String email) {
         return new Member("Jane Doe", email, "hashed-password", BigDecimal.ZERO, LocalDate.of(2000, 1, 1),
                 LocalDate.of(2000, 6, 1));
     }

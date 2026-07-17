@@ -15,7 +15,7 @@ class CourtController {
 
     private final CourtService courtService;
 
-    CourtController(CourtService courtService) {
+    CourtController(final CourtService courtService) {
         this.courtService = courtService;
     }
 

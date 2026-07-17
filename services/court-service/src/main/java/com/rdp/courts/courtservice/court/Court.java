@@ -54,7 +54,7 @@ public class Court {
         return createdAt;
     }
 
-    public void setIsActive(boolean isActive) {
+    public void setIsActive(final boolean isActive) {
         this.isActive = isActive;
     }
 }

@@ -86,7 +86,7 @@ class CourtRepositoryTest {
     @Test
     void shouldDeactivateCourt() {
         final var court = new Court("Court 2", true);
-        var saved = courtRepository.save(court);
+        final var saved = courtRepository.save(court);
 
         saved.setIsActive(false);
         courtRepository.save(saved);
@@ -106,7 +106,7 @@ class CourtRepositoryTest {
         entityManager.flush();
         entityManager.clear();
 
-        var retrieved = courtRepository.findById(saved.getId()).orElseThrow();
+        final var retrieved = courtRepository.findById(saved.getId()).orElseThrow();
         final var createdAt = retrieved.getCreatedAt();
 
         retrieved.setIsActive(false);

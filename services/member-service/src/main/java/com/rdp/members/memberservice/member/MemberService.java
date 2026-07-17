@@ -19,15 +19,16 @@ class MemberService {
     private final PasswordEncoder passwordEncoder;
     private final AccountTransactionService accountTransactionService;
 
-    MemberService(MemberRepository memberRepository, PasswordEncoder passwordEncoder,
-            AccountTransactionService accountTransactionService) {
+    MemberService(final MemberRepository memberRepository, final PasswordEncoder passwordEncoder,
+            final AccountTransactionService accountTransactionService) {
         this.memberRepository = memberRepository;
         this.passwordEncoder = passwordEncoder;
         this.accountTransactionService = accountTransactionService;
     }
 
     @Transactional
-    Member registerMember(String name, String email, String rawPassword, MembershipTerm membershipTerm) {
+    Member registerMember(final String name, final String email, final String rawPassword,
+            final MembershipTerm membershipTerm) {
         if (memberRepository.existsByEmail(email)) {
             throw new DuplicateEmailException(email);
         }
@@ -38,12 +39,12 @@ class MemberService {
         return memberRepository.save(member);
     }
 
-    Optional<Member> getMemberById(UUID id) {
+    Optional<Member> getMemberById(final UUID id) {
         return memberRepository.findById(id);
     }
 
     @Transactional
-    Member topUp(UUID memberId, BigDecimal amount) {
+    Member topUp(final UUID memberId, final BigDecimal amount) {
         if (amount.signum() <= 0) {
             throw new IllegalArgumentException("Top-up amount must be positive: " + amount);
         }
@@ -56,7 +57,7 @@ class MemberService {
         return saved;
     }
 
-    List<AccountTransaction> getTransactionHistory(UUID memberId) {
+    List<AccountTransaction> getTransactionHistory(final UUID memberId) {
         final var member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new MemberNotFoundException(memberId));
         return accountTransactionService.getTransactionHistory(member);

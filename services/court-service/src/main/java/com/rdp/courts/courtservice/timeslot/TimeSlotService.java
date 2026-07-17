@@ -10,11 +10,11 @@ import com.rdp.courts.courtservice.court.Court;
 class TimeSlotService {
     private final TimeSlotRepository timeSlotRepository;
 
-    TimeSlotService(TimeSlotRepository timeSlotRepository) {
+    TimeSlotService(final TimeSlotRepository timeSlotRepository) {
         this.timeSlotRepository = timeSlotRepository;
     }
 
-    List<TimeSlot> getTimeSlotsForCourt(Court court) {
+    List<TimeSlot> getTimeSlotsForCourt(final Court court) {
         return timeSlotRepository.findByCourt(court);
     }
 }
