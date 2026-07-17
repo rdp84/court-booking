@@ -42,7 +42,7 @@ public class AccountTransaction {
     @CreationTimestamp
     private LocalDateTime createdAt;
 
-    AccountTransaction(Member member, BigDecimal amount, TransactionType transactionType) {
+    public AccountTransaction(Member member, BigDecimal amount, TransactionType transactionType) {
         this.member = member;
         this.amount = amount;
         this.transactionType = transactionType;
@@ -52,7 +52,7 @@ public class AccountTransaction {
     AccountTransaction() {
     }
 
-    UUID getId() {
+    public UUID getId() {
         return id;
     }
 
@@ -60,19 +60,19 @@ public class AccountTransaction {
         return member;
     }
 
-    BigDecimal getAmount() {
+    public BigDecimal getAmount() {
         return amount;
     }
 
-    TransactionType getTransactionType() {
+    public TransactionType getTransactionType() {
         return transactionType;
     }
 
-    UUID getReferenceId() {
+    public UUID getReferenceId() {
         return referenceId;
     }
 
-    LocalDateTime getCreatedAt() {
+    public LocalDateTime getCreatedAt() {
         return createdAt;
     }
 }
