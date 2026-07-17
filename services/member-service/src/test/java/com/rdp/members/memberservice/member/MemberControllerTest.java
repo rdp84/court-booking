@@ -11,6 +11,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 
@@ -72,5 +73,52 @@ class MemberControllerTest {
         given(memberService.getMemberById(id)).willReturn(Optional.empty());
 
         assertThat(mockMvc.get().uri("/members/{id}/balance", id)).hasStatus4xxClientError().hasStatus(404);
+    }
+
+    @Test
+    void shouldReturnUpdatedMemberWhenTopUpSucceeds() {
+        final var id = UUID.randomUUID();
+        final var member = new Member(id, "Ada Lovelace", "ada@example.com", "hashed-password",
+                new BigDecimal("35.00"), LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31));
+        given(memberService.topUp(id, new BigDecimal("10.00"))).willReturn(member);
+
+        assertThat(mockMvc.post().uri("/members/{id}/topup", id).contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                            "amount": 10.00
+                        }
+                        """)).hasStatusOk().bodyJson().isLenientlyEqualTo("""
+                        {
+                            "id": "%s",
+                            "accountBalance": 35.00
+                        }
+                        """.formatted(id));
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenTopUpAmountIsNotPositive() {
+        final var id = UUID.randomUUID();
+        given(memberService.topUp(id, new BigDecimal("-5.00")))
+                .willThrow(new IllegalArgumentException("Top-up amount must be positive: -5.00"));
+
+        assertThat(mockMvc.post().uri("/members/{id}/topup", id).contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                            "amount": -5.00
+                        }
+                        """)).hasStatus4xxClientError().hasStatus(400);
+    }
+
+    @Test
+    void shouldReturnNotFoundForTopUpWhenMemberDoesNotExist() {
+        final var id = UUID.randomUUID();
+        given(memberService.topUp(id, new BigDecimal("10.00"))).willThrow(new MemberNotFoundException(id));
+
+        assertThat(mockMvc.post().uri("/members/{id}/topup", id).contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                            "amount": 10.00
+                        }
+                        """)).hasStatus4xxClientError().hasStatus(404);
     }
 }
