@@ -53,7 +53,7 @@ class MemberControllerTest {
         final var id = UUID.randomUUID();
         given(memberService.getMemberById(id)).willReturn(Optional.empty());
 
-        assertThat(mockMvc.get().uri("/members/{id}", id)).hasStatus(404);
+        assertThat(mockMvc.get().uri("/members/{id}", id)).hasStatus(404).bodyText().isEmpty();
     }
 
     @Test
@@ -76,7 +76,7 @@ class MemberControllerTest {
         final var id = UUID.randomUUID();
         given(memberService.getMemberById(id)).willReturn(Optional.empty());
 
-        assertThat(mockMvc.get().uri("/members/{id}/balance", id)).hasStatus(404);
+        assertThat(mockMvc.get().uri("/members/{id}/balance", id)).hasStatus(404).bodyText().isEmpty();
     }
 
     @Test
