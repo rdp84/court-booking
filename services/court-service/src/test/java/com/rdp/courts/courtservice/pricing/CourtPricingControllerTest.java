@@ -31,8 +31,11 @@ class CourtPricingControllerTest {
         given(courtPricingService.calculateFee(day, time)).willReturn(Optional.of(fee));
 
         assertThat(mockMvc.get().uri("/courts/pricing?date=2000-01-03&time=17:15")).hasStatusOk()
-                .bodyJson().convertTo(CourtPricingResponse.class)
-                .satisfies(response -> assertThat(response.fee()).isEqualByComparingTo(fee));
+                .bodyJson().isLenientlyEqualTo("""
+                        {
+                            "fee": 6.00
+                        }
+                        """);
     }
 
     @Test

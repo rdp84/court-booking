@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -45,11 +44,30 @@ class TimeSlotControllerTest {
         given(courtService.getCourtById(courtId)).willReturn(Optional.of(court));
         given(timeSlotService.getTimeSlotsForCourt(court)).willReturn(timeSlots);
 
-        assertThat(mockMvc.get().uri("/courts/" + courtId + "/slots")).hasStatusOk().bodyJson().extractingPath("$")
-                .convertTo(InstanceOfAssertFactories.list(TimeSlotResponse.class)).hasSize(4).satisfies(slots -> {
-                    assertThat(slots.get(0).slotStart()).isEqualTo(LocalTime.of(6, 45));
-                    assertThat(slots.get(0).slotEnd()).isEqualTo(LocalTime.of(7, 30));
-                });
+        assertThat(mockMvc.get().uri("/courts/" + courtId + "/slots")).hasStatusOk().bodyJson().isLenientlyEqualTo("""
+                [
+                    {
+                        "id": null,
+                        "slotStart": "06:45:00",
+                        "slotEnd": "07:30:00"
+                    },
+                    {
+                        "id": null,
+                        "slotStart": "12:45:00",
+                        "slotEnd": "13:30:00"
+                    },
+                    {
+                        "id": null,
+                        "slotStart": "17:15:00",
+                        "slotEnd": "18:00:00"
+                    },
+                    {
+                        "id": null,
+                        "slotStart": "21:00:00",
+                        "slotEnd": "21:45:00"
+                    }
+                ]
+                """);
     }
 
     @Test
@@ -60,8 +78,8 @@ class TimeSlotControllerTest {
         given(courtService.getCourtById(courtId)).willReturn(Optional.of(court));
         given(timeSlotService.getTimeSlotsForCourt(court)).willReturn(List.of());
 
-        final var body = assertThat(mockMvc.get().uri("/courts/" + courtId + "/slots")).hasStatusOk().bodyJson();
-        body.isEqualTo("[]");
+        assertThat(mockMvc.get().uri("/courts/" + courtId + "/slots")).hasStatusOk().bodyJson()
+                .isLenientlyEqualTo("[]");
     }
 
     @Test
