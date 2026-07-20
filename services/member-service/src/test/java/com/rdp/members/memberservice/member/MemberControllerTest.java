@@ -29,13 +29,73 @@ class MemberControllerTest {
     MemberService memberService;
 
     @Test
-    void shouldReturnMemberWhenFound() {
-        final var id = UUID.randomUUID();
-        final var member = new Member(id, "Ada Lovelace", "ada@example.com", "hashed-password",
-                new BigDecimal("35.00"), LocalDate.of(2000, 1, 1), LocalDate.of(2000, 12, 31));
-        given(memberService.getMemberById(id)).willReturn(Optional.of(member));
+    void shouldRegisterMemberAndReturn201() {
+        final var member = newMember();
+        given(memberService.registerMember(member.getName(), member.getEmail(), "plaintext-password",
+                MembershipTerm.ANNUAL)).willReturn(member);
 
-        assertThat(mockMvc.get().uri("/members/{id}", id)).hasStatusOk().bodyJson()
+        assertThat(mockMvc.post().uri("/members").contentType(MediaType.APPLICATION_JSON).content("""
+                    {
+                        "name": "Ada Lovelace",
+                        "email": "ada@example.com",
+                        "password": "plaintext-password",
+                        "term": "ANNUAL"
+                    }
+                """)).hasStatus(201).bodyJson().isLenientlyEqualTo("""
+                    {
+                        "name": "Ada Lovelace",
+                        "email": "ada@example.com"
+                    }
+                """);
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenRegisterMemberFieldsAreInvalid() {
+        given(memberService.registerMember(null, "ada@example.com", "plaintext-password", MembershipTerm.ANNUAL))
+                .willThrow(new IllegalArgumentException("Name must not be blank"));
+
+        assertThat(mockMvc.post().uri("/members").contentType(MediaType.APPLICATION_JSON).content("""
+                    {
+                        "email": "ada@example.com",
+                        "password": "plaintext-password",
+                        "term": "ANNUAL"
+                    }
+                """)).hasStatus(400).bodyText().isEmpty();
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenMembershipTermIsInvalid() {
+        assertThat(mockMvc.post().uri("/members").contentType(MediaType.APPLICATION_JSON).content("""
+                    {
+                        "name": "Ada Lovelace",
+                        "email": "ada@example.com",
+                        "password": "plaintext-password",
+                        "term": "WEEKLY"
+                    }
+                """)).hasStatus(400);
+    }
+
+    @Test
+    void shouldReturnConflictWhenRegisterMemberEmailIsTaken() {
+        given(memberService.registerMember("Ada Lovelace", "ada@example.com", "plaintext-password",
+                MembershipTerm.ANNUAL)).willThrow(new DuplicateEmailException("ada@example.com"));
+
+        assertThat(mockMvc.post().uri("/members").contentType(MediaType.APPLICATION_JSON).content("""
+                    {
+                        "name": "Ada Lovelace",
+                        "email": "ada@example.com",
+                        "password": "plaintext-password",
+                        "term": "ANNUAL"
+                    }
+                """)).hasStatus(409).bodyText().isEmpty();
+    }
+
+    @Test
+    void shouldReturnMemberWhenFound() {
+        final var member = newMember();
+        given(memberService.getMemberById(member.getId())).willReturn(Optional.of(member));
+
+        assertThat(mockMvc.get().uri("/members/{id}", member.getId())).hasStatusOk().bodyJson()
                 .isLenientlyEqualTo("""
                         {
                             "id": "%s",
@@ -45,7 +105,7 @@ class MemberControllerTest {
                             "membershipStartDate": "2000-01-01",
                             "membershipEndDate": "2000-12-31"
                         }
-                        """.formatted(id));
+                        """.formatted(member.getId()));
     }
 
     @Test
@@ -58,12 +118,10 @@ class MemberControllerTest {
 
     @Test
     void shouldReturnBalanceWhenMemberFound() {
-        final var id = UUID.randomUUID();
-        final var member = new Member(id, "Ada Lovelace", "ada@example.com", "hashed-password",
-                new BigDecimal("35.00"), LocalDate.of(2000, 1, 1), LocalDate.of(2000, 12, 31));
-        given(memberService.getMemberById(id)).willReturn(Optional.of(member));
+        final var member = newMember();
+        given(memberService.getMemberById(member.getId())).willReturn(Optional.of(member));
 
-        assertThat(mockMvc.get().uri("/members/{id}/balance", id)).hasStatusOk().bodyJson()
+        assertThat(mockMvc.get().uri("/members/{id}/balance", member.getId())).hasStatusOk().bodyJson()
                 .isLenientlyEqualTo("""
                         {
                             "accountBalance": 35.00
@@ -81,12 +139,10 @@ class MemberControllerTest {
 
     @Test
     void shouldReturnUpdatedMemberWhenTopUpSucceeds() {
-        final var id = UUID.randomUUID();
-        final var member = new Member(id, "Ada Lovelace", "ada@example.com", "hashed-password",
-                new BigDecimal("35.00"), LocalDate.of(2000, 1, 1), LocalDate.of(2000, 12, 31));
-        given(memberService.topUp(id, new BigDecimal("10.00"))).willReturn(member);
+        final var member = newMember();
+        given(memberService.topUp(member.getId(), new BigDecimal("10.00"))).willReturn(member);
 
-        assertThat(mockMvc.post().uri("/members/{id}/topup", id).contentType(MediaType.APPLICATION_JSON)
+        assertThat(mockMvc.post().uri("/members/{id}/topup", member.getId()).contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {
                             "amount": 10.00
@@ -100,7 +156,7 @@ class MemberControllerTest {
                             "membershipStartDate": "2000-01-01",
                             "membershipEndDate": "2000-12-31"
                         }
-                        """.formatted(id));
+                        """.formatted(member.getId()));
     }
 
     @Test
@@ -132,13 +188,11 @@ class MemberControllerTest {
 
     @Test
     void shouldReturnTransactionHistoryWhenMemberFound() {
-        final var id = UUID.randomUUID();
-        final var member = new Member(id, "Ada Lovelace", "ada@example.com", "hashed-password",
-                new BigDecimal("35.00"), LocalDate.of(2000, 1, 1), LocalDate.of(2000, 12, 31));
+        final var member = newMember();
         final var transaction = new AccountTransaction(member, new BigDecimal("10.00"), TransactionType.TOP_UP);
-        given(memberService.getTransactionHistory(id)).willReturn(List.of(transaction));
+        given(memberService.getTransactionHistory(member.getId())).willReturn(List.of(transaction));
 
-        assertThat(mockMvc.get().uri("/members/{id}/transactions", id)).hasStatusOk().bodyJson()
+        assertThat(mockMvc.get().uri("/members/{id}/transactions", member.getId())).hasStatusOk().bodyJson()
                 .isLenientlyEqualTo("""
                         [
                             {
@@ -164,5 +218,11 @@ class MemberControllerTest {
         given(memberService.getTransactionHistory(id)).willThrow(new MemberNotFoundException(id));
 
         assertThat(mockMvc.get().uri("/members/{id}/transactions", id)).hasStatus(404).bodyText().isEmpty();
+    }
+
+    private Member newMember() {
+        final var id = UUID.randomUUID();
+        return new Member(id, "Ada Lovelace", "ada@example.com", "hashed-password",
+                new BigDecimal("35.00"), LocalDate.of(2000, 1, 1), LocalDate.of(2000, 12, 31));
     }
 }

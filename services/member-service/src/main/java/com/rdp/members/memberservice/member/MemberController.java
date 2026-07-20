@@ -1,5 +1,6 @@
 package com.rdp.members.memberservice.member;
 
+import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,6 +21,14 @@ class MemberController {
 
     MemberController(final MemberService memberService) {
         this.memberService = memberService;
+    }
+
+    @PostMapping
+    ResponseEntity<MemberResponse> registerMember(@RequestBody final RegisterMemberRequest request) {
+        final var member = memberService.registerMember(request.name(), request.email(), request.password(),
+                request.term());
+        final var uri = URI.create("/members/" + member.getId());
+        return ResponseEntity.created(uri).body(toMemberResponse(member));
     }
 
     @GetMapping("/{id}")
