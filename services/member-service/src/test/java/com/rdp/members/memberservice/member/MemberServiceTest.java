@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -59,6 +60,44 @@ class MemberServiceTest {
         assertThat(result.getAccountBalance()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(result.getMembershipStartDate()).isEqualTo(today);
         assertThat(result.getMembershipEndDate()).isEqualTo(membershipTerm.calculateEndDate(today));
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = { "", " " })
+    void shouldThrowIllegalArgumentExceptionForBlankName(final String name) {
+        assertThatThrownBy(() -> memberService.registerMember(name, "jane.doe@example.com", "plaintext-password",
+                MembershipTerm.ANNUAL)).isInstanceOf(IllegalArgumentException.class);
+
+        verify(memberRepository, never()).save(any());
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = { "", " " })
+    void shouldThrowIllegalArgumentExceptionForBlankEmail(final String email) {
+        assertThatThrownBy(() -> memberService.registerMember("Jane Doe", email, "plaintext-password",
+                MembershipTerm.ANNUAL)).isInstanceOf(IllegalArgumentException.class);
+
+        verify(memberRepository, never()).save(any());
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = { "", " " })
+    void shouldThrowIllegalArgumentExceptionForBlankPassword(final String password) {
+        assertThatThrownBy(() -> memberService.registerMember("Jane Doe", "jane.doe@example.com", password,
+                MembershipTerm.ANNUAL)).isInstanceOf(IllegalArgumentException.class);
+
+        verify(memberRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldThrowIllegalArgumentExceptionForNullMembershipTerm() {
+        assertThatThrownBy(() -> memberService.registerMember("Jane Doe", "jane.doe@example.com",
+                "plaintext-password", null)).isInstanceOf(IllegalArgumentException.class);
+
+        verify(memberRepository, never()).save(any());
     }
 
     @Test
