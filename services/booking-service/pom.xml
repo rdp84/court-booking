@@ -51,6 +51,12 @@
       <groupId>org.flywaydb</groupId>
       <artifactId>flyway-database-postgresql</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.wiremock.integrations</groupId>
+      <artifactId>wiremock-spring-boot</artifactId>
+      <version>4.0.8</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
 </project>
