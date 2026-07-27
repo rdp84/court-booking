@@ -17,7 +17,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "bookings")
-class Booking {
+public class Booking {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -38,7 +38,7 @@ class Booking {
     @CreationTimestamp
     private LocalDateTime createdAt;
 
-    Booking(final UUID courtId, final UUID timeSlotId, final UUID bookerMemberId, final UUID opponentMemberId,
+    public Booking(final UUID courtId, final UUID timeSlotId, final UUID bookerMemberId, final UUID opponentMemberId,
             final LocalDate bookingDate, final BookingStatus status, final BigDecimal courtFee) {
         this.courtId = courtId;
         this.timeSlotId = timeSlotId;
@@ -53,7 +53,7 @@ class Booking {
     Booking() {
     }
 
-    UUID getId() {
+    public UUID getId() {
         return id;
     }
 
