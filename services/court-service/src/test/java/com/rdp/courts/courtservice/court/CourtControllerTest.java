@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,29 @@ class CourtControllerTest {
 
     @MockitoBean
     CourtService courtService;
+
+    @Test
+    void shouldReturnCourtWhenFound() {
+        final var id = UUID.randomUUID();
+        final var court = new Court(id, "Court 1", true);
+        given(courtService.getCourtById(id)).willReturn(Optional.of(court));
+
+        assertThat(mockMvc.get().uri("/courts/{id}", court.getId())).hasStatusOk().bodyJson().isLenientlyEqualTo("""
+                {
+                    "id": "%s",
+                    "name": "Court 1",
+                    "isActive": true
+                }
+                """.formatted(court.getId()));
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenCourtDoesNotExist() {
+        final var id = UUID.randomUUID();
+        given(courtService.getCourtById(id)).willReturn(Optional.empty());
+
+        assertThat(mockMvc.get().uri("/courts/{id}", id)).hasStatus(404).bodyText().isEmpty();
+    }
 
     @Test
     void shouldReturnActiveCourts() throws Exception {
