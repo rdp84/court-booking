@@ -1,6 +1,8 @@
 package com.rdp.courts.courtservice.timeslot;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
@@ -12,6 +14,10 @@ class TimeSlotService {
 
     TimeSlotService(final TimeSlotRepository timeSlotRepository) {
         this.timeSlotRepository = timeSlotRepository;
+    }
+
+    Optional<TimeSlot> getTimeSlotById(final UUID id) {
+        return timeSlotRepository.findById(id).filter(slot -> slot.getCourt().isActive());
     }
 
     List<TimeSlot> getTimeSlotsForCourt(final Court court) {

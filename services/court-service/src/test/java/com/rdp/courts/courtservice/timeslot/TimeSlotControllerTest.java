@@ -48,26 +48,30 @@ class TimeSlotControllerTest {
                 [
                     {
                         "id": null,
+                        "courtId": "%s",
                         "slotStart": "06:45:00",
                         "slotEnd": "07:30:00"
                     },
                     {
                         "id": null,
+                        "courtId": "%s",
                         "slotStart": "12:45:00",
                         "slotEnd": "13:30:00"
                     },
                     {
                         "id": null,
+                        "courtId": "%s",
                         "slotStart": "17:15:00",
                         "slotEnd": "18:00:00"
                     },
                     {
                         "id": null,
+                        "courtId": "%s",
                         "slotStart": "21:00:00",
                         "slotEnd": "21:45:00"
                     }
                 ]
-                """);
+                """.formatted(courtId, courtId, courtId, courtId));
     }
 
     @Test

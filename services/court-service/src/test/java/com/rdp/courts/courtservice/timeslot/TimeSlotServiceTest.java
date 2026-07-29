@@ -6,6 +6,8 @@ import static org.mockito.BDDMockito.given;
 
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,6 +50,47 @@ class TimeSlotServiceTest {
         given(timeSlotRepository.findByCourt(court)).willReturn(List.of());
 
         final var result = timeSlotService.getTimeSlotsForCourt(court);
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void shouldReturnTimeSlotResponseWhenTimeSlotExists() {
+        final var id = UUID.randomUUID();
+        final var court = new Court("Court 2", true);
+        final var slotStart = LocalTime.of(18, 00);
+        final var slotEnd = LocalTime.of(18, 45);
+        final var timeSlot = new TimeSlot(id, court, slotStart, slotEnd);
+
+        given(timeSlotRepository.findById(id)).willReturn(Optional.of(timeSlot));
+
+        final var result = timeSlotService.getTimeSlotById(id);
+        assertThat(result).isPresent();
+        assertThat(result.get().getId()).isEqualTo(id);
+        assertThat(result.get().getSlotStart()).isEqualTo(slotStart);
+        assertThat(result.get().getSlotEnd()).isEqualTo(slotEnd);
+    }
+
+    @Test
+    void shouldReturnEmptyOptionalWhenTimeSlotNotFound() {
+        final var id = UUID.randomUUID();
+
+        given(timeSlotRepository.findById(id)).willReturn(Optional.empty());
+
+        final var result = timeSlotService.getTimeSlotById(id);
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void shouldReturnEmptyOptionalWhenCourtIsInactive() {
+        final var id = UUID.randomUUID();
+        final var court = new Court("Court 2", false);
+        final var slotStart = LocalTime.of(19, 30);
+        final var slotEnd = LocalTime.of(20, 15);
+        final var timeSlot = new TimeSlot(id, court, slotStart, slotEnd);
+
+        given(timeSlotRepository.findById(id)).willReturn(Optional.of(timeSlot));
+
+        final var result = timeSlotService.getTimeSlotById(id);
         assertThat(result).isEmpty();
     }
 }

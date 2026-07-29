@@ -50,9 +50,13 @@ class TimeSlot {
     }
 
     TimeSlot(final Court court, final LocalTime slotStart, final LocalTime slotEnd) {
-        this.court = court;
-        this.slotStart = slotStart;
+        this(court, slotStart);
         this.slotEnd = slotEnd;
+    }
+
+    TimeSlot(final UUID id, final Court court, final LocalTime slotStart, final LocalTime slotEnd) {
+        this.id = id;
+        this(court, slotStart, slotEnd);
     }
 
     public UUID getId() {

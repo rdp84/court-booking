@@ -24,10 +24,10 @@ class TimeSlotController {
 
     @GetMapping("/{id}/slots")
     ResponseEntity<List<TimeSlotResponse>> getTimeSlotsForCourt(@PathVariable final UUID id) {
-        return courtService.getCourtById(id)
-                .map(court -> timeSlotService.getTimeSlotsForCourt(court))
+        return courtService.getCourtById(id).map(court -> timeSlotService.getTimeSlotsForCourt(court))
                 .map(slots -> slots.stream()
-                        .map(slot -> new TimeSlotResponse(slot.getId(), slot.getSlotStart(), slot.getSlotEnd()))
+                        .map(slot -> new TimeSlotResponse(slot.getId(), slot.getCourt().getId(), slot.getSlotStart(),
+                                slot.getSlotEnd()))
                         .toList())
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
