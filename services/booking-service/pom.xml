@@ -51,6 +51,18 @@
       <groupId>org.flywaydb</groupId>
       <artifactId>flyway-database-postgresql</artifactId>
     </dependency>
+    <!-- wiremock-spring-boot used for Jetty 12.1 compatibility with Spring Boot 4.x
+         WireMock core and wiremock-jetty12 both conflict with Spring Boot 4.x's Jetty version -->
+    <dependency>
+      <groupId>org.wiremock.integrations</groupId>
+      <artifactId>wiremock-spring-boot</artifactId>
+      <version>4.0.8</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
   </dependencies>
 
 </project>
