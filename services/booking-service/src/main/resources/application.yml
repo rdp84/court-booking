@@ -16,3 +16,5 @@ server:
 services:
     member-service:
         url: http://localhost:8082
+    court-service:
+        url: http://localhost:8081
