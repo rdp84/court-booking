@@ -41,7 +41,7 @@ mvn -B checkstyle:check
 
 Repository tests (`*RepositoryTest`) use Testcontainers to spin up a real Postgres instance — Docker must be available to run them.
 
-CI (`.github/workflows/ci.yml`) runs a `Checkstyle` step and `Build` (`mvn -B compile`) in parallel, then `mvn -B test`, against Java 25 with the same working directory (`./services`).
+CI (`.github/workflows/ci.yml`) runs a `Checkstyle` step and `Build` (`mvn -B -Dcheckstyle.skip compile`) in parallel, then `mvn -B test`, against Java 25 with the same working directory (`./services`). `Build` skips Checkstyle because both steps share one checkout: if both ran it, they would race writing `target/checkstyle-result.xml` and intermittently fail with "Unable to read Checkstyle results xml".
 
 ## Architecture
 
