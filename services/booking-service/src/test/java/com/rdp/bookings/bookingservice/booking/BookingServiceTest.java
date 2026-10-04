@@ -3,9 +3,12 @@ package com.rdp.bookings.bookingservice.booking;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -160,6 +163,59 @@ class BookingServiceTest {
             final var booking = bookingService.createBooking(COURT_ID, TIME_SLOT_ID, BOOKING_DATE, BOOKER_ID, null);
 
             assertThat(booking.getStatus()).isEqualTo(BookingStatus.CONFIRMED);
+        }
+    }
+
+    @Nested
+    class MemberLocking {
+
+        @Test
+        void shouldLockBothMembersInKeyOrderBeforeCheckingForOverlaps() {
+            givenBookableCourtSlotWithFee(FEE);
+            givenActiveMember(BOOKER_ID);
+            givenActiveMember(OPPONENT_ID);
+            givenSlotFreeAndNoOverlaps();
+
+            bookingService.createBooking(COURT_ID, TIME_SLOT_ID, BOOKING_DATE, BOOKER_ID, OPPONENT_ID);
+
+            final var bookerKey = BookingService.lockKey(BOOKER_ID);
+            final var opponentKey = BookingService.lockKey(OPPONENT_ID);
+            final var inOrder = inOrder(bookingRepository);
+            inOrder.verify(bookingRepository).lockMember(Math.min(bookerKey, opponentKey));
+            inOrder.verify(bookingRepository).lockMember(Math.max(bookerKey, opponentKey));
+            inOrder.verify(bookingRepository).existsByCourtIdAndTimeSlotIdAndBookingDateAndStatus(COURT_ID,
+                    TIME_SLOT_ID, BOOKING_DATE, BookingStatus.CONFIRMED);
+            inOrder.verify(bookingRepository).existsOverlappingBooking(BOOKER_ID, BOOKING_DATE, SLOT_START, SLOT_END);
+        }
+
+        @Test
+        void shouldLockOnlyTheBookerWithGuestOpponent() {
+            givenBookableCourtSlotWithFee(FEE);
+            givenActiveMember(BOOKER_ID);
+            givenSlotFreeAndNoOverlaps();
+
+            bookingService.createBooking(COURT_ID, TIME_SLOT_ID, BOOKING_DATE, BOOKER_ID, null);
+
+            verify(bookingRepository).lockMember(BookingService.lockKey(BOOKER_ID));
+            verify(bookingRepository, times(1)).lockMember(anyLong());
+        }
+
+        @Test
+        void shouldNotLockWhenRejectedBeforeDatabaseChecks() {
+            givenBookableCourtSlotWithFee(FEE);
+            given(memberServiceClient.getMember(BOOKER_ID)).willReturn(Optional.empty());
+
+            assertThatThrownBy(
+                    () -> bookingService.createBooking(COURT_ID, TIME_SLOT_ID, BOOKING_DATE, BOOKER_ID, null))
+                    .isInstanceOf(BookingRejectedException.class);
+            verify(bookingRepository, never()).lockMember(anyLong());
+        }
+
+        @Test
+        void shouldDeriveLockKeyFromBothHalvesOfTheId() {
+            final var id = new UUID(0x0123456789abcdefL, 0x0fedcba987654321L);
+
+            assertThat(BookingService.lockKey(id)).isEqualTo(0x0123456789abcdefL ^ 0x0fedcba987654321L);
         }
     }
 

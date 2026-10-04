@@ -9,7 +9,12 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
+
+import javax.sql.DataSource;
 
 import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
@@ -23,6 +28,11 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -66,6 +76,48 @@ class BookingRepositoryTest {
 
     @Autowired
     TestEntityManager entityManager;
+
+    @Autowired
+    PlatformTransactionManager transactionManager;
+
+    @Autowired
+    DataSource dataSource;
+
+    // Runs outside the test's transaction so the lock can be held by one transaction and probed from another
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void shouldHoldMemberLockUntilTransactionEnds() throws Exception {
+        final var key = BookingService.lockKey(UUID.randomUUID());
+        final var locked = new CountDownLatch(1);
+        final var release = new CountDownLatch(1);
+        final var transaction = new TransactionTemplate(transactionManager);
+        final var probe = new JdbcTemplate(dataSource);
+
+        try (var executor = Executors.newSingleThreadExecutor()) {
+            final var holder = executor.submit(() -> transaction.executeWithoutResult(status -> {
+                bookingRepository.lockMember(key);
+                locked.countDown();
+                awaitQuietly(release);
+            }));
+
+            assertThat(locked.await(10, TimeUnit.SECONDS)).isTrue();
+            // pg_try_advisory_xact_lock returns immediately; on an autocommit connection it releases straight away
+            assertThat(probe.queryForObject("SELECT pg_try_advisory_xact_lock(?)", Boolean.class, key)).isFalse();
+
+            release.countDown();
+            holder.get(10, TimeUnit.SECONDS);
+        }
+
+        assertThat(probe.queryForObject("SELECT pg_try_advisory_xact_lock(?)", Boolean.class, key)).isTrue();
+    }
+
+    private static void awaitQuietly(final CountDownLatch latch) {
+        try {
+            latch.await(10, TimeUnit.SECONDS);
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("opponentScenarios")

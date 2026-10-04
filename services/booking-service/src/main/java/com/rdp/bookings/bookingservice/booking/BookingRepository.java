@@ -13,6 +13,10 @@ interface BookingRepository extends JpaRepository<Booking, UUID> {
     boolean existsByCourtIdAndTimeSlotIdAndBookingDateAndStatus(UUID courtId, UUID timeSlotId, LocalDate bookingDate,
             BookingStatus status);
 
+    // Transaction-scoped: released automatically when the surrounding transaction commits or rolls back
+    @Query(value = "SELECT 1 FROM pg_advisory_xact_lock(:key)", nativeQuery = true)
+    int lockMember(@Param("key") long key);
+
     // Strict comparisons so back-to-back slots (one ending as the other starts) don't count as overlapping
     @Query("""
             SELECT COUNT(b) > 0 FROM Booking b
