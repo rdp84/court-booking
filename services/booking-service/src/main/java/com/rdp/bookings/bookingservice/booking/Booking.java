@@ -3,6 +3,7 @@ package com.rdp.bookings.bookingservice.booking;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.UUID;
 
 import org.hibernate.annotations.CreationTimestamp;
@@ -25,6 +26,8 @@ public class Booking {
 
     private UUID courtId;
     private UUID timeSlotId;
+    private LocalTime slotStart;
+    private LocalTime slotEnd;
     private UUID bookerMemberId;
     private UUID opponentMemberId;
     private LocalDate bookingDate;
@@ -38,10 +41,13 @@ public class Booking {
     @CreationTimestamp
     private LocalDateTime createdAt;
 
-    public Booking(final UUID courtId, final UUID timeSlotId, final UUID bookerMemberId, final UUID opponentMemberId,
-            final LocalDate bookingDate, final BookingStatus status, final BigDecimal courtFee) {
+    public Booking(final UUID courtId, final UUID timeSlotId, final LocalTime slotStart, final LocalTime slotEnd,
+            final UUID bookerMemberId, final UUID opponentMemberId, final LocalDate bookingDate,
+            final BookingStatus status, final BigDecimal courtFee) {
         this.courtId = courtId;
         this.timeSlotId = timeSlotId;
+        this.slotStart = slotStart;
+        this.slotEnd = slotEnd;
         this.bookerMemberId = bookerMemberId;
         this.opponentMemberId = opponentMemberId; // can be null, which represents a guest opponent
         this.bookingDate = bookingDate;
@@ -63,6 +69,14 @@ public class Booking {
 
     UUID getTimeSlotId() {
         return timeSlotId;
+    }
+
+    LocalTime getSlotStart() {
+        return slotStart;
+    }
+
+    LocalTime getSlotEnd() {
+        return slotEnd;
     }
 
     UUID getBookerMemberId() {

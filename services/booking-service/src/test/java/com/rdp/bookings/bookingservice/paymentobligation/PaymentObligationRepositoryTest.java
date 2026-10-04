@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -35,6 +36,9 @@ class PaymentObligationRepositoryTest {
     @Container
     @ServiceConnection
     static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:15.2");
+
+    private static final LocalTime SLOT_START = LocalTime.of(6, 45);
+    private static final LocalTime SLOT_END = LocalTime.of(7, 30);
 
     private static Stream<Arguments> amountScenarios() {
         return Stream.of(Arguments.of("with an amount of £3.00", new BigDecimal("3.00")),
@@ -98,6 +102,7 @@ class PaymentObligationRepositoryTest {
         final var bookingDate = LocalDate.of(2000, 1, 1);
         final var status = BookingStatus.CONFIRMED;
 
-        return new Booking(courtId, timeSlotId, bookerMemberId, opponentMemberId, bookingDate, status, courtFee);
+        return new Booking(courtId, timeSlotId, SLOT_START, SLOT_END, bookerMemberId, opponentMemberId, bookingDate,
+                status, courtFee);
     }
 }
