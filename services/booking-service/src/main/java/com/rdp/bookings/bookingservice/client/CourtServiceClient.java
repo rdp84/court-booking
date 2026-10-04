@@ -5,7 +5,7 @@ import java.time.LocalTime;
 import java.util.Optional;
 import java.util.UUID;
 
-interface CourtServiceClient {
+public interface CourtServiceClient {
     Optional<CourtResponse> getCourt(UUID courtId);
 
     Optional<TimeSlotResponse> getTimeSlot(UUID timeSlotId);

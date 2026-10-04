@@ -1,0 +1,15 @@
+package com.rdp.bookings.bookingservice.booking;
+
+enum RejectionReason {
+    BOOKING_DATE_IN_PAST,
+    OPPONENT_IS_BOOKER,
+    COURT_NOT_FOUND,
+    COURT_INACTIVE,
+    TIME_SLOT_NOT_FOUND,
+    TIME_SLOT_NOT_ON_COURT,
+    NO_PRICING,
+    MEMBER_NOT_FOUND,
+    MEMBERSHIP_INACTIVE,
+    SLOT_ALREADY_BOOKED,
+    MEMBER_HAS_OVERLAPPING_BOOKING
+}
