@@ -18,3 +18,6 @@ services:
         url: http://localhost:8082
     court-service:
         url: http://localhost:8081
+bookings:
+    cancellation:
+        full-refund-notice: 24h

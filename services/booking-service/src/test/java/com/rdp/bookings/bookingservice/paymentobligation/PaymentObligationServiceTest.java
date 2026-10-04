@@ -1,10 +1,12 @@
 package com.rdp.bookings.bookingservice.paymentobligation;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -39,5 +41,19 @@ class PaymentObligationServiceTest {
         assertThat(saved.getMemberId()).isEqualTo(memberId);
         assertThat(saved.getAmount()).isEqualByComparingTo(new BigDecimal("3.00"));
         assertThat(saved.getStatus()).isEqualTo(PaymentObligationStatus.PENDING);
+    }
+
+    @Test
+    void shouldWaivePendingObligations() {
+        final var booking = mock(Booking.class);
+        final var obligation = new PaymentObligation(booking, UUID.randomUUID(), new BigDecimal("3.00"),
+                PaymentObligationStatus.PENDING);
+        given(paymentObligationRepository.findByBookingAndStatus(booking, PaymentObligationStatus.PENDING))
+                .willReturn(List.of(obligation));
+
+        paymentObligationService.waivePendingObligations(booking);
+
+        assertThat(obligation.getStatus()).isEqualTo(PaymentObligationStatus.WAIVED);
+        verify(paymentObligationRepository).saveAll(List.of(obligation));
     }
 }

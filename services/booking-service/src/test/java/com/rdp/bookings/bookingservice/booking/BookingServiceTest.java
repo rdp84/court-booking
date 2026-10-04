@@ -10,21 +10,25 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.hibernate.exception.ConstraintViolationException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -43,7 +47,9 @@ class BookingServiceTest {
     private static final UUID TIME_SLOT_ID = UUID.randomUUID();
     private static final UUID BOOKER_ID = UUID.randomUUID();
     private static final UUID OPPONENT_ID = UUID.randomUUID();
-    private static final LocalDate BOOKING_DATE = LocalDate.now().plusDays(1);
+    private static final LocalDate TODAY = LocalDate.of(2030, 1, 6);
+    private static final LocalDate BOOKING_DATE = TODAY.plusDays(1);
+    private static final Duration FULL_REFUND_NOTICE = Duration.ofHours(24);
     private static final LocalTime SLOT_START = LocalTime.of(6, 45);
     private static final LocalTime SLOT_END = LocalTime.of(7, 30);
     private static final BigDecimal FEE = new BigDecimal("6.00");
@@ -60,8 +66,12 @@ class BookingServiceTest {
     @Mock
     PaymentObligationService paymentObligationService;
 
-    @InjectMocks
     BookingService bookingService;
+
+    @BeforeEach
+    void setup() {
+        bookingService = serviceAt(TODAY.atTime(12, 0));
+    }
 
     @Test
     void shouldGetBookingById() {
@@ -127,7 +137,7 @@ class BookingServiceTest {
 
         @Test
         void shouldAllowBookingForToday() {
-            final var today = LocalDate.now();
+            final var today = TODAY;
             givenBookableCourtSlotWithFee(FEE, today);
             given(memberServiceClient.getMember(BOOKER_ID)).willReturn(Optional.of(
                     new MemberResponse(BOOKER_ID, BigDecimal.ZERO, today.minusYears(1), today.plusYears(1))));
@@ -165,7 +175,7 @@ class BookingServiceTest {
 
         @Test
         void shouldRejectBookingDateInThePast() {
-            assertRejected(() -> bookingService.createBooking(COURT_ID, TIME_SLOT_ID, LocalDate.now().minusDays(1),
+            assertRejected(() -> bookingService.createBooking(COURT_ID, TIME_SLOT_ID, TODAY.minusDays(1),
                     BOOKER_ID, null), RejectionReason.BOOKING_DATE_IN_PAST);
             verifyNoInteractions(courtServiceClient, memberServiceClient, bookingRepository);
         }
@@ -364,6 +374,117 @@ class BookingServiceTest {
             return new DataIntegrityViolationException("could not execute statement",
                     new ConstraintViolationException("duplicate key", null, constraintName));
         }
+    }
+
+    @Nested
+    class CancelBooking {
+        private static final UUID BOOKING_ID = UUID.randomUUID();
+        private static final LocalDateTime SLOT_STARTS_AT = BOOKING_DATE.atTime(SLOT_START);
+
+        private static Stream<Arguments> refundScenarios() {
+            return Stream.of(Arguments.of("two days before", SLOT_STARTS_AT.minusDays(2),
+                    BookingStatus.CANCELLED_FULL_REFUND),
+                    Arguments.of("exactly the full refund notice before", SLOT_STARTS_AT.minus(FULL_REFUND_NOTICE),
+                            BookingStatus.CANCELLED_FULL_REFUND),
+                    Arguments.of("a minute inside the full refund notice",
+                            SLOT_STARTS_AT.minus(FULL_REFUND_NOTICE).plusMinutes(1),
+                            BookingStatus.CANCELLED_NO_REFUND),
+                    Arguments.of("a minute before the slot starts", SLOT_STARTS_AT.minusMinutes(1),
+                            BookingStatus.CANCELLED_NO_REFUND));
+        }
+
+        private static Stream<Arguments> startedScenarios() {
+            return Stream.of(Arguments.of("as the slot starts", SLOT_STARTS_AT),
+                    Arguments.of("after the slot has started", SLOT_STARTS_AT.plusMinutes(15)),
+                    Arguments.of("on a later day", SLOT_STARTS_AT.plusDays(1)));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("refundScenarios")
+        void shouldCancelWithRefundStatusBasedOnNotice(final String scenario, final LocalDateTime now,
+                final BookingStatus expectedStatus) {
+            final var booking = givenConfirmedBooking();
+            given(bookingRepository.save(booking)).willReturn(booking);
+
+            final var cancelled = serviceAt(now).cancelBooking(BOOKING_ID, BOOKER_ID);
+
+            assertThat(cancelled.getStatus()).isEqualTo(expectedStatus);
+            assertThat(cancelled.getCancelledAt()).isEqualTo(now);
+        }
+
+        @Test
+        void shouldWaivePendingObligationsWhenFullyRefunded() {
+            final var booking = givenConfirmedBooking();
+            given(bookingRepository.save(booking)).willReturn(booking);
+
+            serviceAt(SLOT_STARTS_AT.minusDays(2)).cancelBooking(BOOKING_ID, BOOKER_ID);
+
+            verify(paymentObligationService).waivePendingObligations(booking);
+        }
+
+        @Test
+        void shouldKeepPendingObligationsWhenNotRefunded() {
+            final var booking = givenConfirmedBooking();
+            given(bookingRepository.save(booking)).willReturn(booking);
+
+            serviceAt(SLOT_STARTS_AT.minusHours(1)).cancelBooking(BOOKING_ID, BOOKER_ID);
+
+            verifyNoInteractions(paymentObligationService);
+        }
+
+        @Test
+        void shouldRejectUnknownBooking() {
+            given(bookingRepository.findById(BOOKING_ID)).willReturn(Optional.empty());
+
+            assertCancelRejected(bookingService, BOOKER_ID, RejectionReason.BOOKING_NOT_FOUND);
+        }
+
+        @Test
+        void shouldRejectMemberWhoIsNotTheBooker() {
+            givenConfirmedBooking();
+
+            assertCancelRejected(bookingService, OPPONENT_ID, RejectionReason.NOT_BOOKER);
+        }
+
+        @Test
+        void shouldRejectBookingAlreadyCancelled() {
+            final var booking = givenConfirmedBooking();
+            booking.setStatus(BookingStatus.CANCELLED_FULL_REFUND);
+            booking.setCancelledAt(TODAY.atTime(9, 0));
+
+            assertCancelRejected(bookingService, BOOKER_ID, RejectionReason.ALREADY_CANCELLED);
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("startedScenarios")
+        void shouldRejectBookingThatHasStarted(final String scenario, final LocalDateTime now) {
+            givenConfirmedBooking();
+
+            assertCancelRejected(serviceAt(now), BOOKER_ID, RejectionReason.BOOKING_ALREADY_STARTED);
+        }
+
+        private Booking givenConfirmedBooking() {
+            final var booking = new Booking(COURT_ID, TIME_SLOT_ID, SLOT_START, SLOT_END, BOOKER_ID, OPPONENT_ID,
+                    BOOKING_DATE, BookingStatus.CONFIRMED, FEE);
+            given(bookingRepository.findById(BOOKING_ID)).willReturn(Optional.of(booking));
+            return booking;
+        }
+
+        private void assertCancelRejected(final BookingService service, final UUID memberId,
+                final RejectionReason expectedReason) {
+            assertThatThrownBy(() -> service.cancelBooking(BOOKING_ID, memberId))
+                    .isInstanceOf(BookingRejectedException.class)
+                    .extracting(e -> ((BookingRejectedException) e).getReason()).isEqualTo(expectedReason);
+            verify(bookingRepository, never()).save(any());
+            verifyNoInteractions(paymentObligationService);
+        }
+    }
+
+    private BookingService serviceAt(final LocalDateTime now) {
+        final var zone = ZoneId.systemDefault();
+        return new BookingService(bookingRepository, courtServiceClient, memberServiceClient,
+                paymentObligationService, new BookingProperties(FULL_REFUND_NOTICE),
+                Clock.fixed(now.atZone(zone).toInstant(), zone));
     }
 
     private void givenActiveCourt() {

@@ -2,7 +2,9 @@ package com.rdp.bookings.bookingservice.booking;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -25,19 +27,24 @@ class BookingService {
     private final CourtServiceClient courtServiceClient;
     private final MemberServiceClient memberServiceClient;
     private final PaymentObligationService paymentObligationService;
+    private final BookingProperties properties;
+    private final Clock clock;
 
     BookingService(final BookingRepository bookingRepository, final CourtServiceClient courtServiceClient,
-            final MemberServiceClient memberServiceClient, final PaymentObligationService paymentObligationService) {
+            final MemberServiceClient memberServiceClient, final PaymentObligationService paymentObligationService,
+            final BookingProperties properties, final Clock clock) {
         this.bookingRepository = bookingRepository;
         this.courtServiceClient = courtServiceClient;
         this.memberServiceClient = memberServiceClient;
         this.paymentObligationService = paymentObligationService;
+        this.properties = properties;
+        this.clock = clock;
     }
 
     @Transactional
     Booking createBooking(final UUID courtId, final UUID timeSlotId, final LocalDate bookingDate,
             final UUID bookerMemberId, final UUID opponentMemberId) {
-        if (bookingDate.isBefore(LocalDate.now())) {
+        if (bookingDate.isBefore(LocalDate.now(clock))) {
             throw new BookingRejectedException(RejectionReason.BOOKING_DATE_IN_PAST,
                     "Booking date is in the past: " + bookingDate);
         }
@@ -93,6 +100,39 @@ class BookingService {
 
     Optional<Booking> getBookingById(final UUID id) {
         return bookingRepository.findById(id);
+    }
+
+    @Transactional
+    Booking cancelBooking(final UUID bookingId, final UUID memberId) {
+        final var booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new BookingRejectedException(RejectionReason.BOOKING_NOT_FOUND,
+                        "Booking not found: " + bookingId));
+        if (!booking.getBookerMemberId().equals(memberId)) {
+            throw new BookingRejectedException(RejectionReason.NOT_BOOKER,
+                    "Only the booker can cancel booking " + bookingId);
+        }
+        if (booking.getStatus() != BookingStatus.CONFIRMED) {
+            throw new BookingRejectedException(RejectionReason.ALREADY_CANCELLED,
+                    "Booking is already cancelled: " + bookingId);
+        }
+
+        final var now = LocalDateTime.now(clock);
+        final var slotStart = LocalDateTime.of(booking.getBookingDate(), booking.getSlotStart());
+        if (!now.isBefore(slotStart)) {
+            throw new BookingRejectedException(RejectionReason.BOOKING_ALREADY_STARTED,
+                    "Booking has already started: " + bookingId);
+        }
+
+        final var fullRefund = !now.isAfter(slotStart.minus(properties.fullRefundNotice()));
+        booking.setStatus(fullRefund ? BookingStatus.CANCELLED_FULL_REFUND : BookingStatus.CANCELLED_NO_REFUND);
+        booking.setCancelledAt(now);
+        final var cancelled = bookingRepository.save(booking);
+
+        // With no refund the booker still pays for the court, so the opponent still owes their share
+        if (fullRefund) {
+            paymentObligationService.waivePendingObligations(cancelled);
+        }
+        return cancelled;
     }
 
     private void requireActiveMember(final UUID memberId, final LocalDate bookingDate) {

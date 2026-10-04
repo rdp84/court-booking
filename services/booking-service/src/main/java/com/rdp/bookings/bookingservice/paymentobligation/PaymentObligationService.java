@@ -19,4 +19,11 @@ public class PaymentObligationService {
         paymentObligationRepository
                 .save(new PaymentObligation(booking, memberId, amount, PaymentObligationStatus.PENDING));
     }
+
+    public void waivePendingObligations(final Booking booking) {
+        final var pending = paymentObligationRepository.findByBookingAndStatus(booking,
+                PaymentObligationStatus.PENDING);
+        pending.forEach(obligation -> obligation.setStatus(PaymentObligationStatus.WAIVED));
+        paymentObligationRepository.saveAll(pending);
+    }
 }
