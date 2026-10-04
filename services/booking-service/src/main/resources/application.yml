@@ -18,6 +18,8 @@ services:
         url: http://localhost:8082
     court-service:
         url: http://localhost:8081
+club:
+    time-zone: Europe/London
 bookings:
     cancellation:
         full-refund-notice: 24h
