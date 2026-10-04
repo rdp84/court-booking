@@ -63,6 +63,16 @@ class BookingServiceTest {
     @InjectMocks
     BookingService bookingService;
 
+    @Test
+    void shouldGetBookingById() {
+        final var id = UUID.randomUUID();
+        final var booking = new Booking(COURT_ID, TIME_SLOT_ID, SLOT_START, SLOT_END, BOOKER_ID, null, BOOKING_DATE,
+                BookingStatus.CONFIRMED, FEE);
+        given(bookingRepository.findById(id)).willReturn(Optional.of(booking));
+
+        assertThat(bookingService.getBookingById(id)).containsSame(booking);
+    }
+
     @Nested
     class SuccessfulBooking {
 

@@ -3,6 +3,7 @@ package com.rdp.bookings.bookingservice.booking;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.hibernate.exception.ConstraintViolationException;
@@ -88,6 +89,10 @@ class BookingService {
                     fee.divide(BigDecimal.TWO, 2, RoundingMode.HALF_UP));
         }
         return booking;
+    }
+
+    Optional<Booking> getBookingById(final UUID id) {
+        return bookingRepository.findById(id);
     }
 
     private void requireActiveMember(final UUID memberId, final LocalDate bookingDate) {
