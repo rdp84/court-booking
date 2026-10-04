@@ -36,9 +36,15 @@ class BookingController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @PostMapping("/{id}/cancel")
+    BookingResponse cancelBooking(@PathVariable final UUID id, @Valid @RequestBody final CancelBookingRequest request) {
+        return toBookingResponse(bookingService.cancelBooking(id, request.memberId()));
+    }
+
     private BookingResponse toBookingResponse(final Booking booking) {
         return new BookingResponse(booking.getId(), booking.getCourtId(), booking.getTimeSlotId(),
                 booking.getSlotStart(), booking.getSlotEnd(), booking.getBookingDate(), booking.getBookerMemberId(),
-                booking.getOpponentMemberId(), booking.getStatus(), booking.getCourtFee(), booking.getCreatedAt());
+                booking.getOpponentMemberId(), booking.getStatus(), booking.getCourtFee(), booking.getCreatedAt(),
+                booking.getCancelledAt());
     }
 }

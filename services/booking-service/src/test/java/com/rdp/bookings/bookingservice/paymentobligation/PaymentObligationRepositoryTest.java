@@ -78,6 +78,28 @@ class PaymentObligationRepositoryTest {
     }
 
     @Test
+    void shouldFindObligationsForBookingWithStatus() {
+        final var booking = newBooking(new BigDecimal("6.00"));
+        final var otherBooking = newBooking(new BigDecimal("6.00"));
+        entityManager.persist(booking);
+        entityManager.persist(otherBooking);
+
+        final var pending = paymentObligationRepository.save(new PaymentObligation(booking, UUID.randomUUID(),
+                new BigDecimal("3.00"), PaymentObligationStatus.PENDING));
+        paymentObligationRepository.save(new PaymentObligation(booking, UUID.randomUUID(), new BigDecimal("3.00"),
+                PaymentObligationStatus.PAID));
+        paymentObligationRepository.save(new PaymentObligation(otherBooking, UUID.randomUUID(),
+                new BigDecimal("3.00"), PaymentObligationStatus.PENDING));
+        entityManager.flush();
+        entityManager.clear();
+
+        final var found = paymentObligationRepository.findByBookingAndStatus(booking,
+                PaymentObligationStatus.PENDING);
+
+        assertThat(found).extracting(PaymentObligation::getId).containsExactly(pending.getId());
+    }
+
+    @Test
     void shouldThrowConstraintViolationWhenAmountNotGreaterThanZero() {
         final var booking = newBooking(new BigDecimal("3.00"));
         entityManager.persist(booking);

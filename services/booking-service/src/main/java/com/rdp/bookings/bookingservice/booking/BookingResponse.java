@@ -8,5 +8,5 @@ import java.util.UUID;
 
 record BookingResponse(UUID id, UUID courtId, UUID timeSlotId, LocalTime slotStart, LocalTime slotEnd,
         LocalDate bookingDate, UUID bookerMemberId, UUID opponentMemberId, BookingStatus status, BigDecimal courtFee,
-        LocalDateTime createdAt) {
+        LocalDateTime createdAt, LocalDateTime cancelledAt) {
 }

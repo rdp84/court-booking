@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.LinkedHashMap;
 import java.util.Optional;
@@ -51,7 +52,11 @@ class BookingControllerTest {
                 Arguments.of(RejectionReason.NO_PRICING, 422),
                 Arguments.of(RejectionReason.MEMBERSHIP_INACTIVE, 422),
                 Arguments.of(RejectionReason.SLOT_ALREADY_BOOKED, 409),
-                Arguments.of(RejectionReason.MEMBER_HAS_OVERLAPPING_BOOKING, 409));
+                Arguments.of(RejectionReason.MEMBER_HAS_OVERLAPPING_BOOKING, 409),
+                Arguments.of(RejectionReason.BOOKING_NOT_FOUND, 404),
+                Arguments.of(RejectionReason.NOT_BOOKER, 403),
+                Arguments.of(RejectionReason.ALREADY_CANCELLED, 409),
+                Arguments.of(RejectionReason.BOOKING_ALREADY_STARTED, 422));
     }
 
     @Autowired
@@ -187,6 +192,48 @@ class BookingControllerTest {
     void shouldReturnBadRequestWhenBookingIdMalformed() {
         assertThat(mockMvc.get().uri("/bookings/not-a-uuid")).hasStatus(400);
         verifyNoInteractions(bookingService);
+    }
+
+    @Test
+    void shouldCancelBookingAndReturnIt() {
+        final var booking = newBooking(OPPONENT_ID);
+        booking.setStatus(BookingStatus.CANCELLED_FULL_REFUND);
+        booking.setCancelledAt(LocalDateTime.of(2030, 1, 5, 9, 30));
+        given(bookingService.cancelBooking(BOOKING_ID, BOOKER_ID)).willReturn(booking);
+
+        assertThat(mockMvc.post().uri("/bookings/{id}/cancel", BOOKING_ID).contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                            {
+                                "memberId": "%s"
+                            }
+                        """.formatted(BOOKER_ID))).hasStatusOk().bodyJson().isLenientlyEqualTo("""
+                    {
+                        "id": "%s",
+                        "status": "CANCELLED_FULL_REFUND",
+                        "cancelledAt": "2030-01-05T09:30:00"
+                    }
+                """.formatted(BOOKING_ID));
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenCancelMemberIdMissing() {
+        assertThat(mockMvc.post().uri("/bookings/{id}/cancel", BOOKING_ID).contentType(MediaType.APPLICATION_JSON)
+                .content("{}")).hasStatus(400);
+        verifyNoInteractions(bookingService);
+    }
+
+    @Test
+    void shouldReturnForbiddenWhenCancelledByMemberWhoIsNotTheBooker() {
+        given(bookingService.cancelBooking(BOOKING_ID, OPPONENT_ID)).willThrow(
+                new BookingRejectedException(RejectionReason.NOT_BOOKER, "Only the booker can cancel"));
+
+        assertThat(mockMvc.post().uri("/bookings/{id}/cancel", BOOKING_ID).contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                            {
+                                "memberId": "%s"
+                            }
+                        """.formatted(OPPONENT_ID))).hasStatus(403).bodyJson().extractingPath("$.reason")
+                .isEqualTo("NOT_BOOKER");
     }
 
     private Booking newBooking(final UUID opponentMemberId) {

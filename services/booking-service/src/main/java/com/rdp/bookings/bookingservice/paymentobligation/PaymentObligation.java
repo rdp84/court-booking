@@ -74,4 +74,8 @@ class PaymentObligation {
     LocalDateTime getCreatedAt() {
         return createdAt;
     }
+
+    void setStatus(final PaymentObligationStatus status) {
+        this.status = status;
+    }
 }
