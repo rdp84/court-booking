@@ -5,8 +5,10 @@ import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -78,6 +80,7 @@ class BookingService {
             requireActiveMember(opponentMemberId, bookingDate);
         }
 
+        lockMembers(bookerMemberId, opponentMemberId);
         if (bookingRepository.existsByCourtIdAndTimeSlotIdAndBookingDateAndStatus(courtId, timeSlotId, bookingDate,
                 BookingStatus.CONFIRMED)) {
             throw new BookingRejectedException(RejectionReason.SLOT_ALREADY_BOOKED,
@@ -143,6 +146,20 @@ class BookingService {
             throw new BookingRejectedException(RejectionReason.MEMBERSHIP_INACTIVE,
                     "Membership of " + memberId + " is not active on " + bookingDate);
         }
+    }
+
+    // The unique indexes can't catch overlapping (as opposed to identical) slots, so two concurrent requests for the
+    // same member could both pass the overlap check. A transaction-scoped advisory lock per member makes a second
+    // request wait until the first commits, so its overlap check sees the first booking. Locks are taken in key
+    // order so two bookings between the same pair of members (each booking the other) can't deadlock.
+    private void lockMembers(final UUID bookerMemberId, final UUID opponentMemberId) {
+        Stream.of(bookerMemberId, opponentMemberId).filter(Objects::nonNull).map(BookingService::lockKey).sorted()
+                .distinct().forEach(bookingRepository::lockMember);
+    }
+
+    // Advisory locks take a bigint; a collision only makes two unrelated members' requests wait on each other
+    static long lockKey(final UUID memberId) {
+        return memberId.getMostSignificantBits() ^ memberId.getLeastSignificantBits();
     }
 
     private void requireNoOverlappingBooking(final UUID memberId, final LocalDate bookingDate,
