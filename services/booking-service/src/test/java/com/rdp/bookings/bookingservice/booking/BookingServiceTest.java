@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -37,6 +38,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.client.ResourceAccessException;
 
 import com.rdp.bookings.bookingservice.client.ChargeResult;
 import com.rdp.bookings.bookingservice.client.CourtPricingResponse;
@@ -565,6 +567,37 @@ class BookingServiceTest {
         }
 
         @Test
+        void shouldRefundBookerWhenFullyRefunded() {
+            final var booking = givenConfirmedBooking();
+            given(bookingRepository.save(booking)).willReturn(booking);
+
+            serviceAt(SLOT_STARTS_AT.minusDays(2)).cancelBooking(BOOKING_ID, BOOKER_ID);
+
+            verify(memberServiceClient).refundBooking(BOOKER_ID, BOOKING_ID);
+        }
+
+        @Test
+        void shouldNotRefundBookerWhenNotRefunded() {
+            final var booking = givenConfirmedBooking();
+            given(bookingRepository.save(booking)).willReturn(booking);
+
+            serviceAt(SLOT_STARTS_AT.minusHours(1)).cancelBooking(BOOKING_ID, BOOKER_ID);
+
+            verifyNoInteractions(memberServiceClient);
+        }
+
+        @Test
+        void shouldPropagateRefundFailureSoTheCancellationRollsBack() {
+            final var booking = givenConfirmedBooking();
+            given(bookingRepository.save(booking)).willReturn(booking);
+            final var failure = new ResourceAccessException("Connection refused");
+            willThrow(failure).given(memberServiceClient).refundBooking(BOOKER_ID, BOOKING_ID);
+
+            assertThatThrownBy(() -> serviceAt(SLOT_STARTS_AT.minusDays(2)).cancelBooking(BOOKING_ID, BOOKER_ID))
+                    .isSameAs(failure);
+        }
+
+        @Test
         void shouldKeepPendingObligationsWhenNotRefunded() {
             final var booking = givenConfirmedBooking();
             given(bookingRepository.save(booking)).willReturn(booking);
@@ -618,7 +651,7 @@ class BookingServiceTest {
                     .isInstanceOf(BookingRejectedException.class)
                     .extracting(e -> ((BookingRejectedException) e).getReason()).isEqualTo(expectedReason);
             verify(bookingRepository, never()).save(any());
-            verifyNoInteractions(paymentObligationService);
+            verifyNoInteractions(paymentObligationService, memberServiceClient);
         }
     }
 

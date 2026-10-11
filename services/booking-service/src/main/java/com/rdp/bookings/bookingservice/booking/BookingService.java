@@ -137,9 +137,12 @@ class BookingService {
         booking.setCancelledAt(now);
         final var cancelled = bookingRepository.save(booking);
 
-        // With no refund the booker still pays for the court, so the opponent still owes their share
+        // With no refund the booker still pays for the court, so the opponent still owes their share.
+        // The refund is idempotent: if this transaction fails to commit after it, the booking stays CONFIRMED and
+        // a retried cancellation won't refund twice.
         if (fullRefund) {
             paymentObligationService.waivePendingObligations(cancelled);
+            memberServiceClient.refundBooking(cancelled.getBookerMemberId(), bookingId);
         }
         return cancelled;
     }
