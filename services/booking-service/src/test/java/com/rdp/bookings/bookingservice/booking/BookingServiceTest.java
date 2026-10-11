@@ -34,8 +34,11 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.test.util.ReflectionTestUtils;
 
+import com.rdp.bookings.bookingservice.client.ChargeResult;
 import com.rdp.bookings.bookingservice.client.CourtPricingResponse;
 import com.rdp.bookings.bookingservice.client.CourtResponse;
 import com.rdp.bookings.bookingservice.client.CourtServiceClient;
@@ -68,6 +71,9 @@ class BookingServiceTest {
 
     @Mock
     PaymentObligationService paymentObligationService;
+
+    @Mock
+    ApplicationEventPublisher eventPublisher;
 
     BookingService bookingService;
 
@@ -163,6 +169,86 @@ class BookingServiceTest {
             final var booking = bookingService.createBooking(COURT_ID, TIME_SLOT_ID, BOOKING_DATE, BOOKER_ID, null);
 
             assertThat(booking.getStatus()).isEqualTo(BookingStatus.CONFIRMED);
+        }
+    }
+
+    @Nested
+    class ChargingTheBooker {
+        private static final UUID BOOKING_ID = UUID.randomUUID();
+
+        @Test
+        void shouldChargeBookerTheFullFeeAgainstTheSavedBooking() {
+            givenBookableCourtSlotWithFee(FEE);
+            givenActiveMember(BOOKER_ID);
+            givenActiveMember(OPPONENT_ID);
+            givenSlotFreeAndNoOverlapsSavingWithId();
+            given(memberServiceClient.chargeBooking(BOOKER_ID, BOOKING_ID, FEE)).willReturn(ChargeResult.CHARGED);
+
+            final var booking = bookingService.createBooking(COURT_ID, TIME_SLOT_ID, BOOKING_DATE, BOOKER_ID,
+                    OPPONENT_ID);
+
+            assertThat(booking.getId()).isEqualTo(BOOKING_ID);
+            verify(memberServiceClient).chargeBooking(BOOKER_ID, BOOKING_ID, FEE);
+            verify(memberServiceClient, never()).chargeBooking(eq(OPPONENT_ID), any(), any());
+        }
+
+        @Test
+        void shouldArmRefundBeforeChargingAfterAllLocalWrites() {
+            givenBookableCourtSlotWithFee(FEE);
+            givenActiveMember(BOOKER_ID);
+            givenActiveMember(OPPONENT_ID);
+            givenSlotFreeAndNoOverlapsSavingWithId();
+            given(memberServiceClient.chargeBooking(BOOKER_ID, BOOKING_ID, FEE)).willReturn(ChargeResult.CHARGED);
+
+            bookingService.createBooking(COURT_ID, TIME_SLOT_ID, BOOKING_DATE, BOOKER_ID, OPPONENT_ID);
+
+            final var inOrder = inOrder(bookingRepository, paymentObligationService, eventPublisher,
+                    memberServiceClient);
+            inOrder.verify(bookingRepository).saveAndFlush(any(Booking.class));
+            inOrder.verify(paymentObligationService).createPendingObligation(any(), eq(OPPONENT_ID), any());
+            inOrder.verify(eventPublisher).publishEvent(new BookingChargeAttempted(BOOKING_ID, BOOKER_ID));
+            inOrder.verify(memberServiceClient).chargeBooking(BOOKER_ID, BOOKING_ID, FEE);
+        }
+
+        @Test
+        void shouldRejectWhenBookerHasInsufficientBalance() {
+            givenBookableCourtSlotWithFee(FEE);
+            givenActiveMember(BOOKER_ID);
+            givenSlotFreeAndNoOverlapsSavingWithId();
+            given(memberServiceClient.chargeBooking(BOOKER_ID, BOOKING_ID, FEE))
+                    .willReturn(ChargeResult.INSUFFICIENT_BALANCE);
+
+            assertThatThrownBy(
+                    () -> bookingService.createBooking(COURT_ID, TIME_SLOT_ID, BOOKING_DATE, BOOKER_ID, null))
+                    .isInstanceOf(BookingRejectedException.class)
+                    .extracting(e -> ((BookingRejectedException) e).getReason())
+                    .isEqualTo(RejectionReason.INSUFFICIENT_BALANCE);
+        }
+
+        @Test
+        void shouldNotChargeWhenRejectedBeforeSaving() {
+            givenBookableCourtSlotWithFee(FEE);
+            givenActiveMember(BOOKER_ID);
+            given(bookingRepository.existsByCourtIdAndTimeSlotIdAndBookingDateAndStatus(COURT_ID, TIME_SLOT_ID,
+                    BOOKING_DATE, BookingStatus.CONFIRMED)).willReturn(true);
+
+            assertThatThrownBy(
+                    () -> bookingService.createBooking(COURT_ID, TIME_SLOT_ID, BOOKING_DATE, BOOKER_ID, null))
+                    .isInstanceOf(BookingRejectedException.class);
+            verify(memberServiceClient, never()).chargeBooking(any(), any(), any());
+            verifyNoInteractions(eventPublisher);
+        }
+
+        private void givenSlotFreeAndNoOverlapsSavingWithId() {
+            given(bookingRepository.existsByCourtIdAndTimeSlotIdAndBookingDateAndStatus(COURT_ID, TIME_SLOT_ID,
+                    BOOKING_DATE, BookingStatus.CONFIRMED)).willReturn(false);
+            given(bookingRepository.existsOverlappingBooking(any(UUID.class), eq(BOOKING_DATE), eq(SLOT_START),
+                    eq(SLOT_END))).willReturn(false);
+            given(bookingRepository.saveAndFlush(any(Booking.class))).willAnswer(invocation -> {
+                final Booking booking = invocation.getArgument(0);
+                ReflectionTestUtils.setField(booking, "id", BOOKING_ID);
+                return booking;
+            });
         }
     }
 
@@ -539,7 +625,7 @@ class BookingServiceTest {
     private BookingService serviceAt(final LocalDateTime now) {
         final var zone = ZoneId.systemDefault();
         return new BookingService(bookingRepository, courtServiceClient, memberServiceClient,
-                paymentObligationService, new BookingProperties(FULL_REFUND_NOTICE),
+                paymentObligationService, eventPublisher, new BookingProperties(FULL_REFUND_NOTICE),
                 Clock.fixed(now.atZone(zone).toInstant(), zone));
     }
 

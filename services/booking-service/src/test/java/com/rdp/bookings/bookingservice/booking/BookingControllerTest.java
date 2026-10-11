@@ -56,7 +56,8 @@ class BookingControllerTest {
                 Arguments.of(RejectionReason.BOOKING_NOT_FOUND, 404),
                 Arguments.of(RejectionReason.NOT_BOOKER, 403),
                 Arguments.of(RejectionReason.ALREADY_CANCELLED, 409),
-                Arguments.of(RejectionReason.BOOKING_ALREADY_STARTED, 422));
+                Arguments.of(RejectionReason.BOOKING_ALREADY_STARTED, 422),
+                Arguments.of(RejectionReason.INSUFFICIENT_BALANCE, 422));
     }
 
     @Autowired

@@ -11,10 +11,12 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.rdp.bookings.bookingservice.client.ChargeResult;
 import com.rdp.bookings.bookingservice.client.CourtServiceClient;
 import com.rdp.bookings.bookingservice.client.MemberServiceClient;
 import com.rdp.bookings.bookingservice.client.TimeSlotResponse;
@@ -29,16 +31,18 @@ class BookingService {
     private final CourtServiceClient courtServiceClient;
     private final MemberServiceClient memberServiceClient;
     private final PaymentObligationService paymentObligationService;
+    private final ApplicationEventPublisher eventPublisher;
     private final BookingProperties properties;
     private final Clock clock;
 
     BookingService(final BookingRepository bookingRepository, final CourtServiceClient courtServiceClient,
             final MemberServiceClient memberServiceClient, final PaymentObligationService paymentObligationService,
-            final BookingProperties properties, final Clock clock) {
+            final ApplicationEventPublisher eventPublisher, final BookingProperties properties, final Clock clock) {
         this.bookingRepository = bookingRepository;
         this.courtServiceClient = courtServiceClient;
         this.memberServiceClient = memberServiceClient;
         this.paymentObligationService = paymentObligationService;
+        this.eventPublisher = eventPublisher;
         this.properties = properties;
         this.clock = clock;
     }
@@ -98,6 +102,8 @@ class BookingService {
             paymentObligationService.createPendingObligation(booking, opponentMemberId,
                     fee.divide(BigDecimal.TWO, 2, RoundingMode.HALF_UP));
         }
+
+        chargeBooker(booking);
         return booking;
     }
 
@@ -168,6 +174,20 @@ class BookingService {
             throw new BookingRejectedException(RejectionReason.MEMBER_HAS_OVERLAPPING_BOOKING,
                     "Member " + memberId + " already has a booking overlapping " + slot.slotStart() + "-"
                             + slot.slotEnd() + " on " + bookingDate);
+        }
+    }
+
+    // Charged last, once every local write has succeeded, so only the commit itself can fail afterwards. The
+    // compensating refund is armed before the call: on a timeout the charge may have landed even though we got
+    // no response.
+    private void chargeBooker(final Booking booking) {
+        eventPublisher.publishEvent(new BookingChargeAttempted(booking.getId(), booking.getBookerMemberId()));
+        final var result = memberServiceClient.chargeBooking(booking.getBookerMemberId(), booking.getId(),
+                booking.getCourtFee());
+        if (result == ChargeResult.INSUFFICIENT_BALANCE) {
+            throw new BookingRejectedException(RejectionReason.INSUFFICIENT_BALANCE,
+                    "Member " + booking.getBookerMemberId() + " has insufficient balance for fee "
+                            + booking.getCourtFee());
         }
     }
 
