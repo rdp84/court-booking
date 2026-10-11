@@ -1,11 +1,15 @@
 package com.rdp.bookings.bookingservice.client;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.put;
+import static com.github.tomakehurst.wiremock.client.WireMock.putRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
@@ -90,5 +94,82 @@ class RestMemberServiceClientTest {
 
         assertThatThrownBy(() -> client.getMember(memberId)).isInstanceOf(UpstreamServiceException.class);
         wireMockServer.verify(getRequestedFor(urlEqualTo(testUrl)));
+    }
+
+    @Test
+    void shouldReturnChargedWhenChargeSucceeds() {
+        final var memberId = UUID.randomUUID();
+        final var bookingId = UUID.randomUUID();
+        final var testUrl = "/members/" + memberId + "/booking-payments/" + bookingId;
+
+        wireMockServer.stubFor(put(urlEqualTo(testUrl))
+                .willReturn(aResponse().withStatus(200).withHeader("Content-Type", "application/json").withBody("""
+                        {
+                            "amount": -12.00,
+                            "transactionType": "BOOKING_PAYMENT",
+                            "referenceId": "%s"
+                        }
+                        """.formatted(bookingId))));
+
+        final var result = client.chargeBooking(memberId, bookingId, new BigDecimal("12.00"));
+
+        assertThat(result).isEqualTo(ChargeResult.CHARGED);
+        wireMockServer.verify(putRequestedFor(urlEqualTo(testUrl)).withRequestBody(equalToJson("""
+                {
+                    "amount": 12.00
+                }
+                """)));
+    }
+
+    @Test
+    void shouldReturnInsufficientBalanceWhenChargeIsUnprocessable() {
+        final var memberId = UUID.randomUUID();
+        final var bookingId = UUID.randomUUID();
+        final var testUrl = "/members/" + memberId + "/booking-payments/" + bookingId;
+
+        wireMockServer.stubFor(put(urlEqualTo(testUrl)).willReturn(aResponse().withStatus(422)));
+
+        final var result = client.chargeBooking(memberId, bookingId, new BigDecimal("12.00"));
+
+        assertThat(result).isEqualTo(ChargeResult.INSUFFICIENT_BALANCE);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = { 400, 401, 403, 404, 409 })
+    void shouldThrowUpstreamServiceExceptionForOtherChargeClientErrors(final int status) {
+        final var memberId = UUID.randomUUID();
+        final var bookingId = UUID.randomUUID();
+        final var testUrl = "/members/" + memberId + "/booking-payments/" + bookingId;
+
+        wireMockServer.stubFor(put(urlEqualTo(testUrl)).willReturn(aResponse().withStatus(status)));
+
+        assertThatThrownBy(() -> client.chargeBooking(memberId, bookingId, new BigDecimal("12.00")))
+                .isInstanceOf(UpstreamServiceException.class);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = { 200, 204 })
+    void shouldRefundBooking(final int status) {
+        final var memberId = UUID.randomUUID();
+        final var bookingId = UUID.randomUUID();
+        final var testUrl = "/members/" + memberId + "/booking-refunds/" + bookingId;
+
+        wireMockServer.stubFor(put(urlEqualTo(testUrl)).willReturn(aResponse().withStatus(status)));
+
+        assertThatCode(() -> client.refundBooking(memberId, bookingId)).doesNotThrowAnyException();
+        wireMockServer.verify(putRequestedFor(urlEqualTo(testUrl)));
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = { 400, 401, 403, 404, 409, 422 })
+    void shouldThrowUpstreamServiceExceptionForRefundClientErrors(final int status) {
+        final var memberId = UUID.randomUUID();
+        final var bookingId = UUID.randomUUID();
+        final var testUrl = "/members/" + memberId + "/booking-refunds/" + bookingId;
+
+        wireMockServer.stubFor(put(urlEqualTo(testUrl)).willReturn(aResponse().withStatus(status)));
+
+        assertThatThrownBy(() -> client.refundBooking(memberId, bookingId))
+                .isInstanceOf(UpstreamServiceException.class);
     }
 }
