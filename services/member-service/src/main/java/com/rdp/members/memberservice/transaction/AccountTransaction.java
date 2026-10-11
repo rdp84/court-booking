@@ -48,6 +48,12 @@ public class AccountTransaction {
         this.transactionType = transactionType;
     }
 
+    public AccountTransaction(final Member member, final BigDecimal amount, final TransactionType transactionType,
+            final UUID referenceId) {
+        this(member, amount, transactionType);
+        this.referenceId = referenceId;
+    }
+
     // Required by JPA
     AccountTransaction() {
     }

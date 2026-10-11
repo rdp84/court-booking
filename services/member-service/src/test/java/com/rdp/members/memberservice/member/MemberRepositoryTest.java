@@ -105,6 +105,23 @@ class MemberRepositoryTest {
                 .isEqualTo("chk_balance_non_negative");
     }
 
+    @Test
+    void shouldFindMemberByIdForUpdate() {
+        final var saved = memberRepository.save(newMember("jane.doe@example.com", new BigDecimal("25.00")));
+
+        entityManager.flush();
+        entityManager.clear();
+
+        final var retrieved = memberRepository.findByIdForUpdate(saved.getId());
+        assertThat(retrieved).isPresent();
+        assertThat(retrieved.get().getAccountBalance()).isEqualByComparingTo(new BigDecimal("25.00"));
+    }
+
+    @Test
+    void shouldFindNoMemberByIdForUpdateForNonExistentUUID() {
+        assertThat(memberRepository.findByIdForUpdate(UUID.randomUUID())).isNotPresent();
+    }
+
     private Member newMember(final String email) {
         return newMember(email, new BigDecimal("0.00"));
     }
