@@ -1,12 +1,14 @@
 package com.rdp.members.memberservice.transaction;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,6 +42,37 @@ class AccountTransactionServiceTest {
         assertThat(saved.getMember()).isEqualTo(member);
         assertThat(saved.getAmount()).isEqualByComparingTo(new BigDecimal("25.00"));
         assertThat(saved.getTransactionType()).isEqualTo(TransactionType.TOP_UP);
+    }
+
+    @Test
+    void shouldRecordBookingPaymentAsDebitReferencingBooking() {
+        final var member = new Member("Jane Doe", "jane.doe@example.com", "hashed-password", BigDecimal.ZERO,
+                LocalDate.of(2000, 1, 1), LocalDate.of(2000, 6, 1));
+        final var bookingId = UUID.randomUUID();
+        given(accountTransactionRepository.save(any(AccountTransaction.class)))
+                .willAnswer(invocation -> invocation.getArgument(0));
+
+        final var saved = accountTransactionService.recordBookingPayment(member, new BigDecimal("12.00"), bookingId);
+
+        assertThat(saved.getMember()).isEqualTo(member);
+        assertThat(saved.getAmount()).isEqualByComparingTo(new BigDecimal("-12.00"));
+        assertThat(saved.getTransactionType()).isEqualTo(TransactionType.BOOKING_PAYMENT);
+        assertThat(saved.getReferenceId()).isEqualTo(bookingId);
+    }
+
+    @Test
+    void shouldRecordRefundAsCreditReferencingBooking() {
+        final var member = new Member("Jane Doe", "jane.doe@example.com", "hashed-password", BigDecimal.ZERO,
+                LocalDate.of(2000, 1, 1), LocalDate.of(2000, 6, 1));
+        final var bookingId = UUID.randomUUID();
+        given(accountTransactionRepository.save(any(AccountTransaction.class)))
+                .willAnswer(invocation -> invocation.getArgument(0));
+
+        final var saved = accountTransactionService.recordRefund(member, new BigDecimal("12.00"), bookingId);
+
+        assertThat(saved.getAmount()).isEqualByComparingTo(new BigDecimal("12.00"));
+        assertThat(saved.getTransactionType()).isEqualTo(TransactionType.REFUND);
+        assertThat(saved.getReferenceId()).isEqualTo(bookingId);
     }
 
     @Test

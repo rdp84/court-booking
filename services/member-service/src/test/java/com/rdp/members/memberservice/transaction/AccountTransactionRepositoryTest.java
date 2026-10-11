@@ -100,6 +100,67 @@ class AccountTransactionRepositoryTest {
                 .containsExactlyInAnyOrder(new BigDecimal("10.00"), new BigDecimal("15.00"));
     }
 
+    @Test
+    void shouldFindTransactionByMemberTypeAndReference() {
+        final var member = newMember();
+        entityManager.persist(member);
+        final var bookingId = UUID.randomUUID();
+        accountTransactionRepository.save(new AccountTransaction(member, new BigDecimal("-12.00"),
+                TransactionType.BOOKING_PAYMENT, bookingId));
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(accountTransactionRepository.findByMemberAndTransactionTypeAndReferenceId(member,
+                TransactionType.BOOKING_PAYMENT, bookingId)).isPresent();
+        assertThat(accountTransactionRepository.findByMemberAndTransactionTypeAndReferenceId(member,
+                TransactionType.REFUND, bookingId)).isNotPresent();
+        assertThat(accountTransactionRepository.findByMemberAndTransactionTypeAndReferenceId(member,
+                TransactionType.BOOKING_PAYMENT, UUID.randomUUID())).isNotPresent();
+    }
+
+    @Test
+    void shouldThrowConstraintViolationWhenSameTypeRecordedTwiceForReference() {
+        final var member = newMember();
+        entityManager.persist(member);
+        final var bookingId = UUID.randomUUID();
+        accountTransactionRepository.save(new AccountTransaction(member, new BigDecimal("-12.00"),
+                TransactionType.BOOKING_PAYMENT, bookingId));
+        entityManager.flush();
+
+        accountTransactionRepository.save(new AccountTransaction(member, new BigDecimal("-12.00"),
+                TransactionType.BOOKING_PAYMENT, bookingId));
+        assertThatThrownBy(() -> entityManager.flush()).isInstanceOf(ConstraintViolationException.class)
+                .extracting(e -> ((ConstraintViolationException) e).getConstraintName())
+                .isEqualTo("uq_transaction_member_type_reference");
+    }
+
+    @Test
+    void shouldAllowPaymentAndRefundForSameReference() {
+        final var member = newMember();
+        entityManager.persist(member);
+        final var bookingId = UUID.randomUUID();
+        accountTransactionRepository.save(new AccountTransaction(member, new BigDecimal("-12.00"),
+                TransactionType.BOOKING_PAYMENT, bookingId));
+        accountTransactionRepository
+                .save(new AccountTransaction(member, new BigDecimal("12.00"), TransactionType.REFUND, bookingId));
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(accountTransactionRepository.findByMemberOrderByCreatedAtDesc(member)).hasSize(2);
+    }
+
+    @Test
+    void shouldAllowRepeatedTransactionsWithoutReference() {
+        final var member = newMember();
+        entityManager.persist(member);
+        accountTransactionRepository.save(new AccountTransaction(member, new BigDecimal("10.00"), TransactionType.TOP_UP));
+        accountTransactionRepository.save(new AccountTransaction(member, new BigDecimal("10.00"), TransactionType.TOP_UP));
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(accountTransactionRepository.findByMemberOrderByCreatedAtDesc(member)).hasSize(2);
+    }
+
     private Member newMember() {
         return newMember("jane.doe@example.com");
     }

@@ -220,6 +220,110 @@ class MemberControllerTest {
         assertThat(mockMvc.get().uri("/members/{id}/transactions", id)).hasStatus(404).bodyText().isEmpty();
     }
 
+    @Test
+    void shouldReturnPaymentWhenChargeForBookingSucceeds() {
+        final var member = newMember();
+        final var bookingId = UUID.randomUUID();
+        final var payment = new AccountTransaction(member, new BigDecimal("-12.00"), TransactionType.BOOKING_PAYMENT,
+                bookingId);
+        given(memberService.chargeForBooking(member.getId(), bookingId, new BigDecimal("12.00"))).willReturn(payment);
+
+        assertThat(mockMvc.put().uri("/members/{id}/booking-payments/{bookingId}", member.getId(), bookingId)
+                .contentType(MediaType.APPLICATION_JSON).content("""
+                        {
+                            "amount": 12.00
+                        }
+                        """)).hasStatusOk().bodyJson().isLenientlyEqualTo("""
+                        {
+                            "amount": -12.00,
+                            "transactionType": "BOOKING_PAYMENT",
+                            "referenceId": "%s"
+                        }
+                        """.formatted(bookingId));
+    }
+
+    @Test
+    void shouldReturnUnprocessableContentWhenChargeExceedsBalance() {
+        final var id = UUID.randomUUID();
+        final var bookingId = UUID.randomUUID();
+        given(memberService.chargeForBooking(id, bookingId, new BigDecimal("12.00")))
+                .willThrow(new InsufficientBalanceException(id, new BigDecimal("5.00"), new BigDecimal("12.00")));
+
+        assertThat(mockMvc.put().uri("/members/{id}/booking-payments/{bookingId}", id, bookingId)
+                .contentType(MediaType.APPLICATION_JSON).content("""
+                        {
+                            "amount": 12.00
+                        }
+                        """)).hasStatus(422).bodyText().isEmpty();
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenChargeAmountIsInvalid() {
+        final var id = UUID.randomUUID();
+        final var bookingId = UUID.randomUUID();
+        given(memberService.chargeForBooking(id, bookingId, new BigDecimal("-12.00")))
+                .willThrow(new IllegalArgumentException("Charge amount must be positive: -12.00"));
+
+        assertThat(mockMvc.put().uri("/members/{id}/booking-payments/{bookingId}", id, bookingId)
+                .contentType(MediaType.APPLICATION_JSON).content("""
+                        {
+                            "amount": -12.00
+                        }
+                        """)).hasStatus(400).bodyText().isEmpty();
+    }
+
+    @Test
+    void shouldReturnNotFoundForChargeWhenMemberDoesNotExist() {
+        final var id = UUID.randomUUID();
+        final var bookingId = UUID.randomUUID();
+        given(memberService.chargeForBooking(id, bookingId, new BigDecimal("12.00")))
+                .willThrow(new MemberNotFoundException(id));
+
+        assertThat(mockMvc.put().uri("/members/{id}/booking-payments/{bookingId}", id, bookingId)
+                .contentType(MediaType.APPLICATION_JSON).content("""
+                        {
+                            "amount": 12.00
+                        }
+                        """)).hasStatus(404).bodyText().isEmpty();
+    }
+
+    @Test
+    void shouldReturnRefundWhenBookingWasCharged() {
+        final var member = newMember();
+        final var bookingId = UUID.randomUUID();
+        final var refund = new AccountTransaction(member, new BigDecimal("12.00"), TransactionType.REFUND, bookingId);
+        given(memberService.refundBooking(member.getId(), bookingId)).willReturn(Optional.of(refund));
+
+        assertThat(mockMvc.put().uri("/members/{id}/booking-refunds/{bookingId}", member.getId(), bookingId))
+                .hasStatusOk().bodyJson().isLenientlyEqualTo("""
+                        {
+                            "amount": 12.00,
+                            "transactionType": "REFUND",
+                            "referenceId": "%s"
+                        }
+                        """.formatted(bookingId));
+    }
+
+    @Test
+    void shouldReturnNoContentWhenRefundingBookingThatWasNeverCharged() {
+        final var id = UUID.randomUUID();
+        final var bookingId = UUID.randomUUID();
+        given(memberService.refundBooking(id, bookingId)).willReturn(Optional.empty());
+
+        assertThat(mockMvc.put().uri("/members/{id}/booking-refunds/{bookingId}", id, bookingId)).hasStatus(204)
+                .bodyText().isEmpty();
+    }
+
+    @Test
+    void shouldReturnNotFoundForRefundWhenMemberDoesNotExist() {
+        final var id = UUID.randomUUID();
+        final var bookingId = UUID.randomUUID();
+        given(memberService.refundBooking(id, bookingId)).willThrow(new MemberNotFoundException(id));
+
+        assertThat(mockMvc.put().uri("/members/{id}/booking-refunds/{bookingId}", id, bookingId)).hasStatus(404)
+                .bodyText().isEmpty();
+    }
+
     private Member newMember() {
         final var id = UUID.randomUUID();
         return new Member(id, "Ada Lovelace", "ada@example.com", "hashed-password",

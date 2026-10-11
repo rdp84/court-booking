@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.rdp.members.memberservice.transaction.AccountTransaction;
 import com.rdp.members.memberservice.transaction.AccountTransactionService;
+import com.rdp.members.memberservice.transaction.TransactionType;
 
 @Service
 class MemberService {
@@ -62,12 +63,59 @@ class MemberService {
             throw new IllegalArgumentException("Top-up amount must be positive: " + amount);
         }
 
-        final var member = memberRepository.findById(memberId)
+        final var member = memberRepository.findByIdForUpdate(memberId)
                 .orElseThrow(() -> new MemberNotFoundException(memberId));
         member.creditBalance(amount);
         final var saved = memberRepository.save(member);
         accountTransactionService.recordTopUp(saved, amount);
         return saved;
+    }
+
+    // Idempotent on bookingId: the Booking Service may retry a charge whose response it never saw
+    @Transactional
+    AccountTransaction chargeForBooking(final UUID memberId, final UUID bookingId, final BigDecimal amount) {
+        if (amount.signum() <= 0) {
+            throw new IllegalArgumentException("Charge amount must be positive: " + amount);
+        }
+
+        final var member = memberRepository.findByIdForUpdate(memberId)
+                .orElseThrow(() -> new MemberNotFoundException(memberId));
+        final var existing = accountTransactionService.findByReference(member, TransactionType.BOOKING_PAYMENT,
+                bookingId);
+        if (existing.isPresent()) {
+            if (existing.get().getAmount().negate().compareTo(amount) != 0) {
+                throw new IllegalArgumentException("Booking " + bookingId + " was already charged "
+                        + existing.get().getAmount().negate() + ", not " + amount);
+            }
+            return existing.get();
+        }
+
+        member.debitBalance(amount);
+        memberRepository.save(member);
+        return accountTransactionService.recordBookingPayment(member, amount, bookingId);
+    }
+
+    // Refunds whatever was charged for bookingId, at most once. Empty if nothing was charged, e.g. the Booking
+    // Service is undoing a charge that never landed, or the booking predates charging.
+    @Transactional
+    Optional<AccountTransaction> refundBooking(final UUID memberId, final UUID bookingId) {
+        final var member = memberRepository.findByIdForUpdate(memberId)
+                .orElseThrow(() -> new MemberNotFoundException(memberId));
+        final var payment = accountTransactionService.findByReference(member, TransactionType.BOOKING_PAYMENT,
+                bookingId);
+        if (payment.isEmpty()) {
+            return Optional.empty();
+        }
+        final var existingRefund = accountTransactionService.findByReference(member, TransactionType.REFUND,
+                bookingId);
+        if (existingRefund.isPresent()) {
+            return existingRefund;
+        }
+
+        final var amount = payment.get().getAmount().negate();
+        member.creditBalance(amount);
+        memberRepository.save(member);
+        return Optional.of(accountTransactionService.recordRefund(member, amount, bookingId));
     }
 
     List<AccountTransaction> getTransactionHistory(final UUID memberId) {

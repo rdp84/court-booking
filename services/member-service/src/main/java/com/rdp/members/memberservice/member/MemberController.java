@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -51,6 +52,19 @@ class MemberController {
     @GetMapping("/{id}/transactions")
     List<TransactionResponse> getTransactions(@PathVariable final UUID id) {
         return memberService.getTransactionHistory(id).stream().map(this::toTransactionResponse).toList();
+    }
+
+    @PutMapping("/{id}/booking-payments/{bookingId}")
+    TransactionResponse chargeForBooking(@PathVariable final UUID id, @PathVariable final UUID bookingId,
+            @RequestBody final ChargeRequest request) {
+        return toTransactionResponse(memberService.chargeForBooking(id, bookingId, request.amount()));
+    }
+
+    @PutMapping("/{id}/booking-refunds/{bookingId}")
+    ResponseEntity<TransactionResponse> refundBooking(@PathVariable final UUID id,
+            @PathVariable final UUID bookingId) {
+        return memberService.refundBooking(id, bookingId).map(this::toTransactionResponse).map(ResponseEntity::ok)
+                .orElse(ResponseEntity.noContent().build());
     }
 
     private MemberResponse toMemberResponse(final Member member) {

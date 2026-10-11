@@ -18,6 +18,11 @@ class MemberExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).build();
     }
 
+    @ExceptionHandler(InsufficientBalanceException.class)
+    ResponseEntity<Void> handleInsufficientBalance() {
+        return ResponseEntity.unprocessableContent().build();
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     ResponseEntity<Void> handleIllegalArgument() {
         return ResponseEntity.badRequest().build();

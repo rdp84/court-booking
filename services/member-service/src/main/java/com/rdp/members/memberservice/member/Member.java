@@ -93,4 +93,11 @@ public class Member {
     void creditBalance(final BigDecimal amount) {
         this.accountBalance = this.accountBalance.add(amount);
     }
+
+    void debitBalance(final BigDecimal amount) {
+        if (accountBalance.compareTo(amount) < 0) {
+            throw new InsufficientBalanceException(id, accountBalance, amount);
+        }
+        this.accountBalance = this.accountBalance.subtract(amount);
+    }
 }
