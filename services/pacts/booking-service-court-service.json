@@ -1,0 +1,90 @@
+{
+  "consumer": {
+    "name": "booking-service"
+  },
+  "interactions": [
+    {
+      "description": "a request for an existing court",
+      "key": "ce9f454a",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "a court exists with id a3f8c2d1-0000-0000-0000-000000000001"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/courts/a3f8c2d1-0000-0000-0000-000000000001"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "id": "a3f8c2d1-0000-0000-0000-000000000001",
+            "isActive": true
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.isActive": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "transport": "http",
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for a non-existent court",
+      "key": "58e4b2ea",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "no court exists with id a3f8c2d1-0000-0000-0000-000000000002"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/courts/a3f8c2d1-0000-0000-0000-000000000002"
+      },
+      "response": {
+        "status": 404
+      },
+      "transport": "http",
+      "type": "Synchronous/HTTP"
+    }
+  ],
+  "metadata": {
+    "pact-jvm": {
+      "version": "4.6.21"
+    },
+    "pactSpecification": {
+      "version": "4.0"
+    }
+  },
+  "provider": {
+    "name": "court-service"
+  }
+}
