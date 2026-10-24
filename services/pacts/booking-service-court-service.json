@@ -57,6 +57,80 @@
       "type": "Synchronous/HTTP"
     },
     {
+      "description": "a request for an existing time slot",
+      "key": "797d4943",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "a time slot exists with id a793bbf9-0000-0000-0000-000000000001"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/timeslots/a793bbf9-0000-0000-0000-000000000001"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "courtId": "a3f8c2d1-0000-0000-0000-000000000001",
+            "id": "a793bbf9-0000-0000-0000-000000000001",
+            "slotEnd": "07:30:00",
+            "slotStart": "06:45:00"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.courtId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.slotEnd": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "format": "HH:mm:ss",
+                  "match": "time"
+                }
+              ]
+            },
+            "$.slotStart": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "format": "HH:mm:ss",
+                  "match": "time"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "transport": "http",
+      "type": "Synchronous/HTTP"
+    },
+    {
       "description": "a request for a non-existent court",
       "key": "58e4b2ea",
       "pending": false,
@@ -68,6 +142,25 @@
       "request": {
         "method": "GET",
         "path": "/courts/a3f8c2d1-0000-0000-0000-000000000002"
+      },
+      "response": {
+        "status": 404
+      },
+      "transport": "http",
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for a non-existent time slot",
+      "key": "605e0e63",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "no time slot exists with id a793bbf9-0000-0000-0000-000000000002"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/timeslots/a793bbf9-0000-0000-0000-000000000002"
       },
       "response": {
         "status": 404
