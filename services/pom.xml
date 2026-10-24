@@ -107,6 +107,7 @@
         <configuration>
           <systemPropertyVariables>
             <pact.rootDir>${project.basedir}/../pacts</pact.rootDir>
+            <pact_do_not_track>true</pact_do_not_track>
           </systemPropertyVariables>
         </configuration>
       </plugin>
