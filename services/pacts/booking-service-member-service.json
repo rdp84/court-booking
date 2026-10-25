@@ -1,0 +1,110 @@
+{
+  "consumer": {
+    "name": "booking-service"
+  },
+  "interactions": [
+    {
+      "description": "a request for an existing member",
+      "key": "e9b7ed40",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "a member exists with id f9c7a4d2-0000-0000-0000-000000000001"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/members/f9c7a4d2-0000-0000-0000-000000000001"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "accountBalance": 20.00,
+            "id": "f9c7a4d2-0000-0000-0000-000000000001",
+            "membershipEndDate": "2001-01-01",
+            "membershipStartDate": "2000-01-01"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.accountBalance": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.id": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.membershipEndDate": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "format": "yyyy-MM-dd",
+                  "match": "date"
+                }
+              ]
+            },
+            "$.membershipStartDate": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "format": "yyyy-MM-dd",
+                  "match": "date"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "transport": "http",
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for a non-existent member",
+      "key": "a8202ffe",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "no member exists with id f9c7a4d2-0000-0000-0000-000000000002"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/members/f9c7a4d2-0000-0000-0000-000000000002"
+      },
+      "response": {
+        "status": 404
+      },
+      "transport": "http",
+      "type": "Synchronous/HTTP"
+    }
+  ],
+  "metadata": {
+    "pact-jvm": {
+      "version": "4.6.21"
+    },
+    "pactSpecification": {
+      "version": "4.0"
+    }
+  },
+  "provider": {
+    "name": "member-service"
+  }
+}
