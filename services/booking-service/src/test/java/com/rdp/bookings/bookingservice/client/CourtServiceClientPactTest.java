@@ -2,8 +2,10 @@ package com.rdp.bookings.bookingservice.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Map;
 import java.util.UUID;
@@ -75,6 +77,24 @@ class CourtServiceClientPactTest {
                 .willRespondWith().status(404).toPact(V4Pact.class);
     }
 
+    @Pact(consumer = "booking-service")
+    V4Pact getExistingPricing(final PactDslWithProvider builder) throws ParseException {
+        return builder.given("a price exists for the given date and time")
+                .uponReceiving("a request for court pricing with a matching rule").path("/courts/pricing")
+                .method("GET").matchQuery("date", "\\d{4}-\\d{2}-\\d{2}", "2000-01-03")
+                .matchQuery("time", "\\d{2}:\\d{2}", "17:15").willRespondWith().status(200)
+                .headers(Map.of("Content-Type", "application/json"))
+                .body(new PactDslJsonBody().decimalType("fee", new BigDecimal("6.00"))).toPact(V4Pact.class);
+    }
+
+    @Pact(consumer = "booking-service")
+    V4Pact getPricingNotFound(final PactDslWithProvider builder) {
+        return builder.given("no price exists for the given date and time")
+                .uponReceiving("a request for court pricing with no matching rule")
+                .path("/courts/pricing").method("GET").matchQuery("date", "\\d{4}-\\d{2}-\\d{2}", "2000-01-03")
+                .matchQuery("time", "\\d{2}:\\d{2}", "03:30").willRespondWith().status(404).toPact(V4Pact.class);
+    }
+
     @Test
     @PactTestFor(pactMethod = "getExistingCourt")
     void shouldReturnCourtWhenFound(final MockServer mockServer) {
@@ -121,6 +141,29 @@ class CourtServiceClientPactTest {
                 new CourtServiceProperties(mockServer.getUrl()));
 
         final var result = client.getTimeSlot(NON_EXISTENT_TIME_SLOT_ID);
+
+        assertThat(result).isNotPresent();
+    }
+
+    @Test
+    @PactTestFor(pactMethod = "getExistingPricing")
+    void shouldReturnPricingWhenFound(final MockServer mockServer) {
+        final var client = new RestCourtServiceClient(RestClient.builder(),
+                new CourtServiceProperties(mockServer.getUrl()));
+
+        final var result = client.getPricing(LocalDate.of(2000, 1, 3), LocalTime.of(17, 15));
+
+        assertThat(result).isPresent();
+        assertThat(result.get().fee()).isEqualTo(new BigDecimal("6.00"));
+    }
+
+    @Test
+    @PactTestFor(pactMethod = "getPricingNotFound")
+    void shouldReturnEmptyWhenPricingNotFound(final MockServer mockServer) {
+        final var client = new RestCourtServiceClient(RestClient.builder(),
+                new CourtServiceProperties(mockServer.getUrl()));
+
+        final var result = client.getPricing(LocalDate.of(2000, 1, 3), LocalTime.of(3, 30));
 
         assertThat(result).isNotPresent();
     }

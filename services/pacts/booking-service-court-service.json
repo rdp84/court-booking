@@ -57,6 +57,79 @@
       "type": "Synchronous/HTTP"
     },
     {
+      "description": "a request for court pricing with a matching rule",
+      "key": "d6663df3",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "a price exists for the given date and time"
+        }
+      ],
+      "request": {
+        "matchingRules": {
+          "query": {
+            "date": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "\\d{4}-\\d{2}-\\d{2}"
+                }
+              ]
+            },
+            "time": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "\\d{2}:\\d{2}"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/courts/pricing",
+        "query": {
+          "date": [
+            "2000-01-03"
+          ],
+          "time": [
+            "17:15"
+          ]
+        }
+      },
+      "response": {
+        "body": {
+          "content": {
+            "fee": 6.00
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.fee": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "transport": "http",
+      "type": "Synchronous/HTTP"
+    },
+    {
       "description": "a request for an existing time slot",
       "key": "797d4943",
       "pending": false,
@@ -142,6 +215,55 @@
       "request": {
         "method": "GET",
         "path": "/courts/a3f8c2d1-0000-0000-0000-000000000002"
+      },
+      "response": {
+        "status": 404
+      },
+      "transport": "http",
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "a request for court pricing with no matching rule",
+      "key": "7e7937cb",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "no price exists for the given date and time"
+        }
+      ],
+      "request": {
+        "matchingRules": {
+          "query": {
+            "date": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "\\d{4}-\\d{2}-\\d{2}"
+                }
+              ]
+            },
+            "time": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "\\d{2}:\\d{2}"
+                }
+              ]
+            }
+          }
+        },
+        "method": "GET",
+        "path": "/courts/pricing",
+        "query": {
+          "date": [
+            "2000-01-03"
+          ],
+          "time": [
+            "03:30"
+          ]
+        }
       },
       "response": {
         "status": 404
