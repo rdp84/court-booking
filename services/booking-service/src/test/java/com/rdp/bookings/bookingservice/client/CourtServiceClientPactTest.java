@@ -154,7 +154,7 @@ class CourtServiceClientPactTest {
         final var result = client.getPricing(LocalDate.of(2000, 1, 3), LocalTime.of(17, 15));
 
         assertThat(result).isPresent();
-        assertThat(result.get().fee()).isEqualTo(new BigDecimal("6.00"));
+        assertThat(result.get().fee()).isEqualByComparingTo(new BigDecimal("6.00"));
     }
 
     @Test
