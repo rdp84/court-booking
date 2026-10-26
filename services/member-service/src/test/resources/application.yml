@@ -5,3 +5,5 @@ spring:
     flyway:
         enabled: true
         validate-migration-naming: true
+club:
+    time-zone: Europe/London

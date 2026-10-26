@@ -13,6 +13,7 @@ target/
 *~
 \#*\#
 .#*
+.eglot-java
 
 # IDE general
 *.class

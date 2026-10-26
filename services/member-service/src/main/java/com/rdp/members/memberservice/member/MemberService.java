@@ -1,6 +1,7 @@
 package com.rdp.members.memberservice.member;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -19,12 +20,14 @@ class MemberService {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
     private final AccountTransactionService accountTransactionService;
+    private final Clock clock;
 
     MemberService(final MemberRepository memberRepository, final PasswordEncoder passwordEncoder,
-            final AccountTransactionService accountTransactionService) {
+            final AccountTransactionService accountTransactionService, final Clock clock) {
         this.memberRepository = memberRepository;
         this.passwordEncoder = passwordEncoder;
         this.accountTransactionService = accountTransactionService;
+        this.clock = clock;
     }
 
     @Transactional
@@ -47,7 +50,7 @@ class MemberService {
             throw new DuplicateEmailException(email);
         }
 
-        final var startDate = LocalDate.now();
+        final var startDate = LocalDate.now(clock);
         final var member = new Member(name, email, passwordEncoder.encode(rawPassword), BigDecimal.ZERO, startDate,
                 membershipTerm.calculateEndDate(startDate));
         return memberRepository.save(member);

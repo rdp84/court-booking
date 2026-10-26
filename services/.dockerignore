@@ -1,0 +1,30 @@
+# Maven build output
+**/target/
+
+# Test files
+**/src/test/
+
+# Checkstyle
+checkstyle.xml
+
+# Pact files
+pacts/
+
+# Docker files themselves
+**/Dockerfile
+
+# Eclipse
+**/.classpath
+**/.project
+**/.settings/
+
+# Emacs
+**/*~
+**/\#*\#
+**/.#*
+**/.eglot-java
+
+# Git
+**/.git/
+**/.gitignore
+
