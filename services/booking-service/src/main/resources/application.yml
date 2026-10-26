@@ -14,10 +14,10 @@ spring:
 server:
     port: 8083
 services:
-    member-service:
-        url: http://localhost:8082
     court-service:
-        url: http://localhost:8081
+        url: ${COURT_SERVICE_URL:http://localhost:8081}
+    member-service:
+        url: ${MEMBER_SERVICE_URL:http://localhost:8082}
 club:
     time-zone: Europe/London
 bookings:

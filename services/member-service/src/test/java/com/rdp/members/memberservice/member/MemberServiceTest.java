@@ -10,18 +10,21 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -42,8 +45,16 @@ class MemberServiceTest {
     @Mock
     AccountTransactionService accountTransactionService;
 
-    @InjectMocks
+    // 23:30 UTC on 31 May is 00:30 BST on 1 June: the club's date, not the server's, must be used
+    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-05-31T23:30:00Z"),
+            ZoneId.of("Europe/London"));
+
     MemberService memberService;
+
+    @BeforeEach
+    void setUp() {
+        memberService = new MemberService(memberRepository, passwordEncoder, accountTransactionService, CLOCK);
+    }
 
     @ParameterizedTest
     @EnumSource(MembershipTerm.class)
@@ -55,7 +66,7 @@ class MemberServiceTest {
         final var result = memberService.registerMember("Jane Doe", "jane.doe@example.com", "plaintext-password",
                 membershipTerm);
 
-        final var today = LocalDate.now();
+        final var today = LocalDate.of(2026, 6, 1);
         assertThat(result.getName()).isEqualTo("Jane Doe");
         assertThat(result.getEmail()).isEqualTo("jane.doe@example.com");
         assertThat(result.getPasswordHash()).isEqualTo("hashed-password");
