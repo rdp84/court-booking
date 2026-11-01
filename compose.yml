@@ -1,0 +1,103 @@
+name: court-booking
+
+x-postgres: &postgres
+  image: postgres:15.2
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+    interval: 5s
+    timeout: 3s
+    retries: 10
+
+services:
+  postgres-court:
+    <<: *postgres
+    environment:
+      POSTGRES_DB: court_service
+      POSTGRES_USER: ${DB_USERNAME:?set DB_USERNAME in .env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - court-db-data:/var/lib/postgresql/data
+
+  postgres-member:
+    <<: *postgres
+    environment:
+      POSTGRES_DB: member_service
+      POSTGRES_USER: ${DB_USERNAME:?set DB_USERNAME in .env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - member-db-data:/var/lib/postgresql/data
+
+  postgres-booking:
+    <<: *postgres
+    environment:
+      POSTGRES_DB: booking_service
+      POSTGRES_USER: ${DB_USERNAME:?set DB_USERNAME in .env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:5435:5432"
+    volumes:
+      - booking-db-data:/var/lib/postgresql/data
+
+  court-service:
+    build:
+      context: ./services
+      args:
+        SERVICE: court-service
+        PORT: 8081
+    ports:
+      - "127.0.0.1:8081:8081"
+    environment:
+      DB_URL: jdbc:postgresql://postgres-court:5432/court_service
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      postgres-court:
+        condition: service_healthy
+
+  member-service:
+    build:
+      context: ./services
+      args:
+        SERVICE: member-service
+        PORT: 8082
+    ports:
+      - "127.0.0.1:8082:8082"
+    environment:
+      DB_URL: jdbc:postgresql://postgres-member:5432/member_service
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      postgres-member:
+        condition: service_healthy
+
+  booking-service:
+    build:
+      context: ./services
+      args:
+        SERVICE: booking-service
+        PORT: 8083
+    ports:
+      - "127.0.0.1:8083:8083"
+    environment:
+      DB_URL: jdbc:postgresql://postgres-booking:5432/booking_service
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      COURT_SERVICE_URL: http://court-service:8081
+      MEMBER_SERVICE_URL: http://member-service:8082
+    depends_on:
+      postgres-booking:
+        condition: service_healthy
+      court-service:
+        condition: service_started
+      member-service:
+        condition: service_started
+
+volumes:
+  court-db-data:
+  member-db-data:
+  booking-db-data:
+
