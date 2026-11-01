@@ -17,3 +17,6 @@ target/
 
 # IDE general
 *.class
+
+# .env files
+.env
